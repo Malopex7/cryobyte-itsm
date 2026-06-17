@@ -7,6 +7,16 @@ export interface User {
   email: string;
   role: 'Admin' | 'Technician' | 'Client';
   clientId?: string;
+  hasAllQueueAccess?: boolean;
+}
+
+export interface Queue {
+  _id: string;
+  name: string;
+  description?: string;
+  color: string;
+  members: { _id: string; name: string; email: string; role: string }[];
+  isActive: boolean;
 }
 
 export interface Ticket {
@@ -21,16 +31,42 @@ export interface Ticket {
     urgency: number;
     priority: 'P1' | 'P2' | 'P3' | 'P4';
   };
+  hasTechChangedPriority?: boolean;
+  queueId?: { _id: string; name: string; color: string } | string | null;
   sla: {
     ackTarget?: string;
     resolveTarget?: string;
     ackBreached: boolean;
     resolveBreached: boolean;
+    pausedAt?: string | null;
   };
-  clientId: string;
-  assignedTo?: string;
+  clientId: any;
+  assignedTechnicianId?: {
+    _id: string;
+    name: string;
+    email: string;
+  } | string | null;
+  pauseReason?: string | null;
+  lifecycleTimestamps?: {
+    inProgressAt?: string | Date;
+    pendingAt?: string | Date;
+    resolvedAt?: string | Date;
+    closedAt?: string | Date;
+  };
   createdAt: string;
   updatedAt: string;
+  notes?: {
+    _id?: string;
+    text: string;
+    author: string;
+    type: 'system' | 'technician';
+    createdAt: string;
+  }[];
+  attachments?: {
+    fileId?: string;
+    filename?: string;
+    contentType?: string;
+  }[];
 }
 
 export interface FilterState {

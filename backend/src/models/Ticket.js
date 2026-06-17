@@ -19,6 +19,12 @@ const ticketSchema = new mongoose.Schema({
     impact: { type: Number, required: true, min: 1, max: 3 },
     urgency: { type: Number, required: true, min: 1, max: 3 }
   },
+  hasTechChangedPriority: { type: Boolean, default: false },
+  queueId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Queue',
+    default: null
+  },
   sla: {
     ackTarget: { type: Date },
     resolveTarget: { type: Date },
@@ -27,6 +33,19 @@ const ticketSchema = new mongoose.Schema({
     pausedAt: { type: Date },
     pausedTotalMinutes: { type: Number, default: 0 }
   },
+  pauseReason: { type: String },
+  lifecycleTimestamps: {
+    inProgressAt: { type: Date },
+    pendingAt: { type: Date },
+    resolvedAt: { type: Date },
+    closedAt: { type: Date }
+  },
+  notes: [{
+    text: { type: String, required: true },
+    author: { type: String, required: true },
+    type: { type: String, enum: ['system', 'technician'], default: 'technician' },
+    createdAt: { type: Date, default: Date.now }
+  }],
   attachments: [{
     fileId: { type: mongoose.Schema.Types.ObjectId },
     filename: { type: String },

@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { getClients, createClient, getUsers, updateUser, getAdminMetrics } from '../../../controllers/adminController.js';
+import { getClients, createClient, getUsers, getTechnicians, updateUser, getAdminMetrics } from '../../../controllers/adminController.js';
+import { getQueues, createQueue, updateQueue, updateQueueMembers, deleteQueue } from '../../../controllers/queueController.js';
 import { protect, requireRole } from '../../../middlewares/auth.js';
 
 const router = Router();
@@ -17,7 +18,20 @@ router.route('/clients')
 router.route('/users')
   .get(getUsers);
 
+router.get('/technicians', getTechnicians);
+
 router.route('/users/:id')
   .patch(updateUser);
+
+// Queue (Bucket) management
+router.route('/queues')
+  .get(getQueues)
+  .post(createQueue);
+
+router.route('/queues/:id')
+  .patch(updateQueue)
+  .delete(deleteQueue);
+
+router.patch('/queues/:id/members', updateQueueMembers);
 
 export default router;

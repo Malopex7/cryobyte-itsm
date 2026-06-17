@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useStore, Ticket } from "../../store";
 import { useSocket } from "../../hooks/useSocket";
-import PriorityMatrix, { Level } from "../../components/forms/PriorityMatrix";
 import FileUpload, { UploadedAsset } from "../../components/forms/FileUpload";
 import SlaCountdown from "../../components/tickets/SlaCountdown";
 import { AlertCircle, CheckCircle, FileText, Send, HelpCircle } from "lucide-react";
@@ -17,8 +16,6 @@ export default function ClientPortal() {
   // Ticket Intake State
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
-  const [urgency, setUrgency] = useState<Level>(2);
-  const [impact, setImpact] = useState<Level>(2);
   const [attachments, setAttachments] = useState<UploadedAsset[]>([]);
 
   // Page States
@@ -80,10 +77,7 @@ export default function ClientPortal() {
     router.push("/login");
   };
 
-  const handlePriorityChange = (newUrgency: Level, newImpact: Level) => {
-    setUrgency(newUrgency);
-    setImpact(newImpact);
-  };
+
 
   const handleUploadComplete = (assets: UploadedAsset[]) => {
     setAttachments(assets);
@@ -105,7 +99,7 @@ export default function ClientPortal() {
         body: JSON.stringify({
           subject,
           description,
-          matrix: { urgency, impact },
+          matrix: { urgency: 1, impact: 1 },
           attachments,
         }),
       });
@@ -121,8 +115,6 @@ export default function ClientPortal() {
       // Clear Form
       setSubject("");
       setDescription("");
-      setUrgency(2);
-      setImpact(2);
       setAttachments([]);
 
       // Scroll list into view or let sockets handle insert
@@ -218,14 +210,7 @@ export default function ClientPortal() {
                   />
                 </div>
 
-                {/* Priority Matrix Selector */}
-                <div className="pt-2">
-                  <PriorityMatrix
-                    urgency={urgency}
-                    impact={impact}
-                    onChange={handlePriorityChange}
-                  />
-                </div>
+
 
                 {/* File Dropzone Upload */}
                 <div className="pt-2">
@@ -309,6 +294,8 @@ export default function ClientPortal() {
                                 targetDate={ticket.sla.resolveTarget}
                                 type="resolve"
                                 isBreached={ticket.sla.resolveBreached}
+                                isPaused={ticket.status === 'Waiting on Client'}
+                                pausedAt={ticket.sla.pausedAt}
                               />
                             ) : null}
                           </div>

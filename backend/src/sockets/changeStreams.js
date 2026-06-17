@@ -16,13 +16,21 @@ export const initChangeStreams = (io) => {
     const ticketDoc = change.fullDocument;
     
     if (ticketDoc) {
-      if (change.operationType === 'insert') {
-        io.emit('ticket-created', ticketDoc);
-        io.emit('ticket:created', ticketDoc);
-      } else if (change.operationType === 'update') {
-        io.emit('ticket-updated', ticketDoc);
-        io.emit('ticket:updated', ticketDoc);
-      }
+      Ticket.findById(ticketDoc._id)
+        .populate('clientId', 'name')
+        .populate('assignedTechnicianId', 'name email')
+        .then(populatedTicket => {
+          if (populatedTicket) {
+            if (change.operationType === 'insert') {
+              io.emit('ticket-created', populatedTicket);
+              io.emit('ticket:created', populatedTicket);
+            } else if (change.operationType === 'update') {
+              io.emit('ticket-updated', populatedTicket);
+              io.emit('ticket:updated', populatedTicket);
+            }
+          }
+        })
+        .catch(err => console.error('Error populating change stream ticket:', err));
     }
   });
 

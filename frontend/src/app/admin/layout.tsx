@@ -13,14 +13,26 @@ export default function AdminLayout({
   const { isAuthenticated, user } = useStore();
   const [isChecking, setIsChecking] = useState(true);
 
+  const [hasHydrated, setHasHydrated] = useState(false);
+
   useEffect(() => {
+    setHasHydrated(useStore.persist.hasHydrated());
+    const unsub = useStore.persist.onFinishHydration(() => {
+      setHasHydrated(true);
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+
     // Wait for Zustand hydration to finish on client
     if (!isAuthenticated || !user || user.role !== "Admin") {
       router.push("/login");
     } else {
       setIsChecking(false);
     }
-  }, [isAuthenticated, user, router]);
+  }, [hasHydrated, isAuthenticated, user, router]);
 
   if (isChecking) {
     return (

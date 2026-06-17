@@ -12,6 +12,7 @@ import authRoutes from './routes/api/v1/authRoutes.js';
 import assetRoutes from './routes/api/v1/assetRoutes.js';
 import ticketRoutes from './routes/api/v1/ticketRoutes.js';
 import adminRoutes from './routes/api/v1/adminRoutes.js';
+import queueRoutes from './routes/api/v1/queueRoutes.js';
 import emailParseRouter from './routes/webhooks/emailParse.js';
 import chatOpsRouter from './routes/webhooks/chatOps.js';
 
@@ -25,6 +26,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/assets', assetRoutes);
 app.use('/api/v1/tickets', ticketRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/queues', queueRoutes);
 app.use('/api/v1/tickets/webhook/email', emailParseRouter);
 app.use('/api/v1/tickets/webhook/chatops', chatOpsRouter);
 

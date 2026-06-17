@@ -63,6 +63,11 @@ const LOG_TEMPLATES = [
 
 export default function Home() {
   const { isAuthenticated, user, logout } = useStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -166,7 +171,7 @@ export default function Home() {
           >
             Client Portal
           </Link>
-          {isAuthenticated && user?.role === "Admin" && (
+          {mounted && isAuthenticated && user?.role === "Admin" && (
             <Link
               href="/admin"
               className="text-sm font-medium text-[#44483d] hover:bg-[#b6d094]/30 transition-colors px-3 py-2 rounded font-bold"
@@ -189,7 +194,7 @@ export default function Home() {
         </div>
 
         <div className="flex items-center gap-4">
-          {isAuthenticated && user ? (
+          {mounted && isAuthenticated && user ? (
             <div className="flex items-center gap-3">
               <div className="hidden sm:flex flex-col text-right font-mono text-xs">
                 <span className="font-bold">{user.name}</span>

@@ -73,11 +73,29 @@ export const getUsers = async (req, res, next) => {
 };
 
 /**
+ * Get all technicians + admins (for assignment dropdowns)
+ */
+export const getTechnicians = async (req, res, next) => {
+  try {
+    const technicians = await User.find({ role: { $in: ['Technician', 'Admin'] } })
+      .select('name email role hasAllQueueAccess')
+      .sort({ name: 1 });
+
+    res.status(200).json({
+      status: 'success',
+      data: { technicians }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Update user role and company association
  */
 export const updateUser = async (req, res, next) => {
   try {
-    const { role, clientId } = req.body;
+    const { role, clientId, hasAllQueueAccess } = req.body;
     const user = await User.findById(req.params.id);
 
     if (!user) {
@@ -92,6 +110,11 @@ export const updateUser = async (req, res, next) => {
       user.clientId = clientId;
     } else {
       user.clientId = undefined; // Clear company association if role is Tech/Admin
+    }
+
+    // Grant or revoke all-queue (dispatcher) access
+    if (hasAllQueueAccess !== undefined) {
+      user.hasAllQueueAccess = hasAllQueueAccess;
     }
 
     await user.save();

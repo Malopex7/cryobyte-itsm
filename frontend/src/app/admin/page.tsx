@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useStore } from "../../store";
+import { useStore, Queue } from "../../store";
 import { AlertCircle, CheckCircle, Plus, Shield, Users, Building, Activity, Sliders } from "lucide-react";
 
 interface ClientCompany {
@@ -74,6 +74,18 @@ export default function AdminDashboard() {
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editRole, setEditRole] = useState<"Client" | "Technician" | "Admin">("Client");
   const [editClientId, setEditClientId] = useState("");
+  const [editHasAllQueueAccess, setEditHasAllQueueAccess] = useState(false);
+
+  // Queue State
+  const [queues, setQueues] = useState<Queue[]>([]);
+  const [queueName, setQueueName] = useState("");
+  const [queueDescription, setQueueDescription] = useState("");
+  const [queueColor, setQueueColor] = useState("#6366f1");
+  const [queueMembers, setQueueMembers] = useState<string[]>([]);
+  const [editingQueueId, setEditingQueueId] = useState<string | null>(null);
+  const [editQueueName, setEditQueueName] = useState("");
+  const [editQueueColor, setEditQueueColor] = useState("");
+  const [editQueueMembers, setEditQueueMembers] = useState<string[]>([]);
 
   // Feedback State
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -102,6 +114,11 @@ export default function AdminDashboard() {
       const dataUsers = await resUsers.json();
       if (resUsers.ok) setUsers(dataUsers.data.users);
       setUsersLoading(false);
+
+      // 4. Fetch queues
+      const resQueues = await fetch("/api/v1/queues", { headers });
+      const dataQueues = await resQueues.json();
+      if (resQueues.ok) setQueues(dataQueues.data.queues || []);
     } catch (err) {
       console.error(err);
       setErrorMsg("Failed to load administration database records.");
@@ -206,10 +223,92 @@ export default function AdminDashboard() {
     }
   };
 
-  const startEditingUser = (u: UserProfile) => {
+  // Grant/revoke dispatcher access without opening full edit mode
+  const handleToggleDispatcher = async (userId: string, current: boolean) => {
+    try {
+      const response = await fetch(`/api/v1/admin/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ hasAllQueueAccess: !current })
+      });
+      if (response.ok) {
+        setSuccessMsg(`Dispatcher access ${!current ? 'granted' : 'revoked'} successfully.`);
+        loadAdminData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Create a new queue
+  const handleCreateQueue = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setActionLoading(true);
+    try {
+      const response = await fetch("/api/v1/admin/queues", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name: queueName, description: queueDescription, color: queueColor, members: queueMembers })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Failed to create queue.");
+      setSuccessMsg(`Queue "${queueName}" created!`);
+      setQueueName(""); setQueueDescription(""); setQueueColor("#6366f1"); setQueueMembers([]);
+      loadAdminData();
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Save queue edits
+  const handleSaveQueueEdit = async (queueId: string) => {
+    setActionLoading(true);
+    try {
+      await Promise.all([
+        fetch(`/api/v1/admin/queues/${queueId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ name: editQueueName, color: editQueueColor })
+        }),
+        fetch(`/api/v1/admin/queues/${queueId}/members`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ members: editQueueMembers })
+        })
+      ]);
+      setSuccessMsg('Queue updated!');
+      setEditingQueueId(null);
+      loadAdminData();
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Delete queue
+  const handleDeleteQueue = async (queueId: string, queueName: string) => {
+    if (!window.confirm(`Delete queue "${queueName}"? Tickets in this queue will become Unqueued.`)) return;
+    try {
+      await fetch(`/api/v1/admin/queues/${queueId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSuccessMsg(`Queue "${queueName}" deleted.`);
+      loadAdminData();
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    }
+  };
+
+  const startEditingUser = (u: any) => {
     setEditingUserId(u._id);
     setEditRole(u.role);
     setEditClientId(u.clientId?._id || (clients[0]?._id || ""));
+    setEditHasAllQueueAccess(u.hasAllQueueAccess || false);
   };
 
   return (
@@ -505,6 +604,22 @@ export default function AdminDashboard() {
                                 </div>
                               )}
 
+                              {/* Dispatcher toggle — only for Techs/Admins */}
+                              {editRole !== "Client" && (
+                                <div className="flex items-center justify-between gap-4">
+                                  <span>DISPATCHER ACCESS:</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditHasAllQueueAccess(!editHasAllQueueAccess)}
+                                    className={`px-3 py-1 border-2 border-black font-bold text-[11px] uppercase cursor-pointer transition-all ${
+                                      editHasAllQueueAccess ? 'bg-purple-600 text-white' : 'bg-gray-100 text-black'
+                                    }`}
+                                  >
+                                    {editHasAllQueueAccess ? '✓ ENABLED' : 'DISABLED'}
+                                  </button>
+                                </div>
+                              )}
+
                               <div className="flex justify-end gap-2 pt-2">
                                 <button 
                                   onClick={() => setEditingUserId(null)}
@@ -513,7 +628,14 @@ export default function AdminDashboard() {
                                   Cancel
                                 </button>
                                 <button 
-                                  onClick={() => handleSaveUserChange(u._id)}
+                                  onClick={() => {
+                                    // Pass hasAllQueueAccess along with the save
+                                    fetch(`/api/v1/admin/users/${u._id}`, {
+                                      method: 'PATCH',
+                                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                      body: JSON.stringify({ role: editRole, clientId: editRole === 'Client' ? editClientId : undefined, hasAllQueueAccess: editHasAllQueueAccess })
+                                    }).then(() => { setSuccessMsg('User updated!'); setEditingUserId(null); loadAdminData(); });
+                                  }}
                                   disabled={actionLoading}
                                   className="px-3 py-1 bg-brand-olive text-black border border-black text-[11px] font-bold uppercase cursor-pointer"
                                 >
@@ -540,6 +662,115 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
+
+        {/* ── Queue Management Panel ── */}
+        <div className="mt-8 bg-white brutalist-border p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg">
+          <h2 className="text-2xl font-black mb-6 border-b-2 border-black pb-2 flex items-center gap-2">
+            <Shield className="w-6 h-6 text-purple-600" /> Queue Management ({queues.length} queues)
+          </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Create Queue Form */}
+            <div>
+              <h3 className="text-sm font-black uppercase mb-4 font-mono">Create New Queue</h3>
+              <form onSubmit={handleCreateQueue} className="space-y-3">
+                <div className="flex gap-3">
+                  <div className="flex-1 space-y-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-[#44483d] font-mono">Queue Name</label>
+                    <input type="text" required placeholder="e.g. Networking" className="w-full p-2 border-2 border-black bg-white text-sm outline-none" value={queueName} onChange={e => setQueueName(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-[#44483d] font-mono">Color</label>
+                    <input type="color" className="h-[42px] w-12 p-0.5 border-2 border-black cursor-pointer" value={queueColor} onChange={e => setQueueColor(e.target.value)} />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-[#44483d] font-mono">Description</label>
+                  <input type="text" placeholder="Optional description" className="w-full p-2 border-2 border-black bg-white text-sm outline-none" value={queueDescription} onChange={e => setQueueDescription(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-[#44483d] font-mono">Members (Technicians)</label>
+                  <div className="max-h-40 overflow-y-auto border-2 border-black p-2 space-y-1 bg-gray-50">
+                    {users.filter(u => u.role === 'Technician' || u.role === 'Admin').map(u => (
+                      <label key={u._id} className="flex items-center gap-2 text-xs font-mono cursor-pointer">
+                        <input type="checkbox" checked={queueMembers.includes(u._id)} onChange={e => {
+                          if (e.target.checked) setQueueMembers(m => [...m, u._id]);
+                          else setQueueMembers(m => m.filter(id => id !== u._id));
+                        }} />
+                        {u.name} <span className="text-gray-400">({u.role})</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <button type="submit" disabled={actionLoading} className="w-full py-2 bg-black text-white font-bold text-sm border-2 border-black hover:bg-gray-900 transition-all cursor-pointer flex items-center justify-center gap-2">
+                  <Plus className="w-4 h-4" /> Create Queue
+                </button>
+              </form>
+            </div>
+
+            {/* Existing Queues List */}
+            <div>
+              <h3 className="text-sm font-black uppercase mb-4 font-mono">Existing Queues</h3>
+              {queues.length === 0 ? (
+                <p className="text-xs font-mono text-gray-500">No queues created yet.</p>
+              ) : (
+                <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
+                  {queues.map(q => {
+                    const isEditing = editingQueueId === q._id;
+                    return (
+                      <div key={q._id} className="border-2 border-black p-4 bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="w-4 h-4 rounded-full border border-black flex-shrink-0" style={{ backgroundColor: q.color }} />
+                            <span className="font-bold font-sans">{q.name}</span>
+                            <span className="text-[10px] font-mono text-gray-500">({q.members.length} members)</span>
+                            {!q.isActive && <span className="text-[10px] font-mono bg-red-100 text-red-700 border border-red-400 px-1">INACTIVE</span>}
+                          </div>
+                          <div className="flex gap-1">
+                            <button onClick={() => { setEditingQueueId(q._id); setEditQueueName(q.name); setEditQueueColor(q.color); setEditQueueMembers(q.members.map(m => m._id)); }} className="text-[10px] font-mono font-bold border-2 border-black px-2 py-1 bg-[#efeee7] hover:bg-gray-200 cursor-pointer">Edit</button>
+                            <button onClick={() => handleDeleteQueue(q._id, q.name)} className="text-[10px] font-mono font-bold border-2 border-black px-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 cursor-pointer">Delete</button>
+                          </div>
+                        </div>
+
+                        {!isEditing && q.members.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {q.members.map(m => (
+                              <span key={m._id} className="text-[10px] font-mono bg-gray-100 border border-gray-300 px-1.5 py-0.5">{m.name}</span>
+                            ))}
+                          </div>
+                        )}
+
+                        {isEditing && (
+                          <div className="mt-3 pt-3 border-t border-dashed border-gray-400 space-y-2 font-mono text-xs">
+                            <div className="flex gap-2">
+                              <input type="text" className="flex-1 p-1.5 border-2 border-black bg-white" value={editQueueName} onChange={e => setEditQueueName(e.target.value)} />
+                              <input type="color" className="w-10 h-8 p-0.5 border-2 border-black cursor-pointer" value={editQueueColor} onChange={e => setEditQueueColor(e.target.value)} />
+                            </div>
+                            <div className="max-h-32 overflow-y-auto border-2 border-black p-2 space-y-1 bg-gray-50">
+                              {users.filter(u => u.role === 'Technician' || u.role === 'Admin').map(u => (
+                                <label key={u._id} className="flex items-center gap-2 cursor-pointer">
+                                  <input type="checkbox" checked={editQueueMembers.includes(u._id)} onChange={e => {
+                                    if (e.target.checked) setEditQueueMembers(m => [...m, u._id]);
+                                    else setEditQueueMembers(m => m.filter(id => id !== u._id));
+                                  }} />
+                                  {u.name}
+                                </label>
+                              ))}
+                            </div>
+                            <div className="flex gap-2 justify-end">
+                              <button onClick={() => setEditingQueueId(null)} className="px-3 py-1 border border-black bg-white font-bold uppercase text-[10px] cursor-pointer">Cancel</button>
+                              <button onClick={() => handleSaveQueueEdit(q._id)} className="px-3 py-1 bg-black text-white font-bold uppercase text-[10px] cursor-pointer">Save</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );

@@ -6,9 +6,11 @@ interface SlaCountdownProps {
   targetDate: string; // ISO 8601 string
   type: 'ack' | 'resolve';
   isBreached: boolean;
+  isPaused?: boolean;
+  pausedAt?: string | null; // ISO 8601 string
 }
 
-export default function SlaCountdown({ targetDate, type, isBreached }: SlaCountdownProps) {
+export default function SlaCountdown({ targetDate, type, isBreached, isPaused, pausedAt }: SlaCountdownProps) {
   const [timeLeft, setTimeLeft] = useState<string>('');
 
   useEffect(() => {
@@ -17,7 +19,7 @@ export default function SlaCountdown({ targetDate, type, isBreached }: SlaCountd
     const targetTime = new Date(targetDate).getTime();
 
     const updateTimer = () => {
-      const now = new Date().getTime();
+      const now = (isPaused && pausedAt) ? new Date(pausedAt).getTime() : new Date().getTime();
       const difference = targetTime - now;
       const isPast = difference < 0;
 

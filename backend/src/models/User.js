@@ -33,6 +33,10 @@ const userSchema = new mongoose.Schema({
     required: function() {
       return this.role === 'Client';
     }
+  },
+  hasAllQueueAccess: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true
