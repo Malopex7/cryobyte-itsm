@@ -41,6 +41,9 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --color-brand-olive: #B6D094;
+  --color-brand-bronze: #CA9F7D;
+  --color-brand-almond: #D58848;
 }
 
 :root {
@@ -119,4 +122,61 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* ── Brutalist Design Utilities ── */
+.brutalist-border {
+  border: 1px solid #1A1A1A;
+}
+
+.brutalist-hover {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.brutalist-hover:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+}
+.brutalist-hover:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0px 0px 0px 0px rgba(0, 0, 0, 1);
+}
+
+/* ── Neo-brutalist card/button hover (strict solid offset) ── */
+.neo-brutalist-hover {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.neo-brutalist-hover:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+}
+
+/* ── Staggered Reveal Animations ── */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+    clip-path: inset(100% 0 0 0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.reveal-animate {
+  animation: reveal-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+/* ── Typewriter cursor blink ── */
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.typewriter-cursor::after {
+  content: "█";
+  animation: blink-cursor 0.8s step-end infinite;
+  color: #B6D094;
 }
