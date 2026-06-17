@@ -5,6 +5,7 @@ This document outlines the step-by-step roadmap to complete the development of t
 ---
 
 ## 🔑 Phase 1: Authentication, Access Control & Database Models
+
 Establish the security foundation and schema architecture.
 
 - [x] **Install Dependencies**
@@ -29,6 +30,7 @@ Establish the security foundation and schema architecture.
 ---
 
 ## 📤 Phase 2: Ingestion Pipeline & GridFS Large Object Storage
+
 Set up filesystems and multiple entry channels for ticket creation.
 
 - [x] **GridFS Engine Setup**
@@ -52,6 +54,7 @@ Set up filesystems and multiple entry channels for ticket creation.
 ---
 
 ## ⏰ Phase 3: Dual-Clock SLA Engine & Background Workers
+
 Implement business calendar logic and automated SLA breach checks.
 
 - [x] **Holiday Calendar and SAST Local Time Configuration**
@@ -76,6 +79,7 @@ Implement business calendar logic and automated SLA breach checks.
 ---
 
 ## ⚡ Phase 4: Sockets and Change Streams Real-Time Sync
+
 Implement live UI updates and locking.
 
 - [x] **Socket.io Core Server**
@@ -92,29 +96,30 @@ Implement live UI updates and locking.
 ---
 
 ## 🎨 Phase 5: Frontend Pages, State & Live Dashboard UI
+
 Build the high-contrast technical UI interfaces.
 
-- [ ] **Global Store (Zustand)**
-  - [ ] Manage ticket states, filtering, loading states, and auth sessions.
+- [x] **Global Store (Zustand)**
+  - [x] Manage ticket states, filtering, loading states, and auth sessions.
   - File:
     - [MODIFY] [store.ts](file:///d:/cursor-dev/cryobyte-itsm/frontend/src/store.ts)
 - [ ] **Technician Live Dashboard & Queues**
-  - [ ] Real-time incident list sorting P1s to top.
-  - [ ] Blinking red row animation using Tailwind CSS if `sla.resolveBreached` or `sla.ackBreached` is true.
-  - [ ] Real-time SLA countdown clocks reflecting SAST timezone.
+  - [x] Real-time incident list sorting P1s to top.
+  - [x] Blinking red row animation using Tailwind CSS if `sla.resolveBreached` or `sla.ackBreached` is true.
+  - [x] Real-time SLA countdown clocks reflecting SAST timezone.
   - Files:
     - [NEW] [Dashboard.jsx](file:///d:/cursor-dev/cryobyte-itsm/frontend/src/pages/technician/Dashboard.jsx)
     - [NEW] [SlaCountdown.jsx](file:///d:/cursor-dev/cryobyte-itsm/frontend/src/components/tickets/SlaCountdown.jsx)
 - [ ] **Technician Detail Sheet & UI Locking Integration**
-  - [ ] Bind focus/blur textarea listeners to Socket.io to lock/unlock fields.
-  - [ ] Render "Lock indicator" when other users are editing resolution inputs.
-  - [ ] Stream attachment previews inline (PDF, text, images).
+  - [x] Bind focus/blur textarea listeners to Socket.io to lock/unlock fields.
+  - [x] Render "Lock indicator" when other users are editing resolution inputs.
+  - [x] Stream attachment previews inline (PDF, text, images).
   - Files:
     - [NEW] [TicketDetail.jsx](file:///d:/cursor-dev/cryobyte-itsm/frontend/src/pages/technician/TicketDetail.jsx)
     - [NEW] [AssetPreview.jsx](file:///d:/cursor-dev/cryobyte-itsm/frontend/src/components/tickets/AssetPreview.jsx)
 - [ ] **Client Intake Portal**
-  - [ ] File dropzone module uploading files directly to Express GridFS endpoints.
-  - [ ] Interactive 3x3 urgency/impact grid matrix selectors.
+  - [x] File dropzone module uploading files directly to Express GridFS endpoints.
+  - [x] Interactive 3x3 urgency/impact grid matrix selectors.
   - Files:
     - [NEW] [SubmitTicket.jsx](file:///d:/cursor-dev/cryobyte-itsm/frontend/src/pages/portal/SubmitTicket.jsx)
     - [NEW] [FileUpload.jsx](file:///d:/cursor-dev/cryobyte-itsm/frontend/src/components/forms/FileUpload.jsx)
@@ -122,6 +127,7 @@ Build the high-contrast technical UI interfaces.
 ---
 
 ## 📦 Phase 6: PWA Integration, Optimization & Final Polish
+
 Refine performance, styles, and offline accessibility.
 
 - [ ] **PWA & Manifest Configuration**
