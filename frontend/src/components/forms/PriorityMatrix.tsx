@@ -10,9 +10,6 @@ interface PriorityMatrixProps {
   onChange: (urgency: Level, impact: Level) => void;
 }
 
-const URGENCY_LABELS: Record<Level, string> = { 3: 'High', 2: 'Medium', 1: 'Low' };
-const IMPACT_LABELS: Record<Level, string> = { 3: 'High', 2: 'Medium', 1: 'Low' };
-
 export default function PriorityMatrix({ urgency, impact, onChange }: PriorityMatrixProps) {
   
   // Calculate priority for display purposes (backend also calculates this)

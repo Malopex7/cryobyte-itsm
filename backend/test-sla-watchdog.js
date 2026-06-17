@@ -18,6 +18,7 @@ async function runTest() {
   console.log('Database connected.');
 
   // Initialize Agenda database connection
+  agenda.processEvery('1 second');
   await agenda.start();
   console.log('Agenda started.');
 

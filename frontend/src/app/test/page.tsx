@@ -31,22 +31,24 @@ export default function RealTimeTestPage() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
   // 1. Listen to 'ticket-updated' from Mongoose Change Streams
-  const handleTicketUpdated = useCallback((updatedTicket: Ticket) => {
-    setTicketLogs((prev) => [updatedTicket, ...prev.slice(0, 4)]);
+  const handleTicketUpdated = useCallback((updatedTicket: unknown) => {
+    setTicketLogs((prev) => [updatedTicket as Ticket, ...prev.slice(0, 4)]);
   }, []);
 
   useSocket('ticket-updated', handleTicketUpdated);
 
   // 2. Listen to presence lock events
-  const handleFieldLocked = useCallback((data: { ticketId: string; field: string; userName: string }) => {
-    if (data.ticketId === testTicketId && data.field === 'resolution') {
+  const handleFieldLocked = useCallback((data: unknown) => {
+    const typedData = data as { ticketId: string; field: string; userName: string };
+    if (typedData.ticketId === testTicketId && typedData.field === 'resolution') {
       setIsFieldLocked(true);
-      setLockedByUser(data.userName);
+      setLockedByUser(typedData.userName);
     }
   }, []);
 
-  const handleFieldUnlocked = useCallback((data: { ticketId: string; field: string }) => {
-    if (data.ticketId === testTicketId && data.field === 'resolution') {
+  const handleFieldUnlocked = useCallback((data: unknown) => {
+    const typedData = data as { ticketId: string; field: string };
+    if (typedData.ticketId === testTicketId && typedData.field === 'resolution') {
       setIsFieldLocked(false);
       setLockedByUser('');
     }

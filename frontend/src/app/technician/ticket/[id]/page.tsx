@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, use } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useSocket } from '../../../../hooks/useSocket';
 import { useStore } from '../../../../store';
 import { Lock } from 'lucide-react';
@@ -11,23 +13,36 @@ interface TicketPageProps {
 }
 
 export default function TicketDetail({ params }: TicketPageProps) {
+  const router = useRouter();
   const { id: ticketId } = use(params);
-  const { user } = useStore();
+  const { user, logout } = useStore();
   const { emit } = useSocket();
   const [resolutionText, setResolutionText] = useState("");
   
   // Lock state
   const [lockedBy, setLockedBy] = useState<string | null>(null);
 
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/v1/auth/logout', { method: 'POST' });
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+    logout();
+    router.push('/login');
+  };
+
   // Listen for lock events
-  useSocket('field-locked', (data: any) => {
-    if (data.ticketId === ticketId && data.field === 'resolution') {
-      setLockedBy(data.userName);
+  useSocket('field-locked', (data) => {
+    const typedData = data as { ticketId: string; field: string; userName: string };
+    if (typedData.ticketId === ticketId && typedData.field === 'resolution') {
+      setLockedBy(typedData.userName);
     }
   });
 
-  useSocket('field-unlocked', (data: any) => {
-    if (data.ticketId === ticketId && data.field === 'resolution') {
+  useSocket('field-unlocked', (data) => {
+    const typedData = data as { ticketId: string; field: string };
+    if (typedData.ticketId === ticketId && typedData.field === 'resolution') {
       setLockedBy(null);
     }
   });
@@ -50,12 +65,41 @@ export default function TicketDetail({ params }: TicketPageProps) {
 
   return (
     <div className="min-h-screen bg-[#fbfaf2] text-[#1b1c18] p-8 font-sans">
-      <div className="max-w-[1000px] mx-auto bg-white brutalist-border p-8 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-        <div className="border-b-2 border-black pb-4 mb-6 flex justify-between items-end">
-          <div>
-            <span className="font-mono text-sm bg-black text-white px-2 py-1 mb-2 inline-block">
-              {ticketId}
-            </span>
+      <div className="max-w-[1000px] mx-auto">
+        {/* Top Header Panel */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white brutalist-border p-4 mb-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] gap-4 rounded-lg">
+          <div className="flex items-center gap-4">
+            <Link href="/technician/dashboard" className="text-xs font-mono font-bold uppercase border-2 border-black px-3 py-1.5 bg-[#efeee7] hover:bg-gray-200">
+              ← War Room
+            </Link>
+            <div className="font-mono text-xs">
+              <span className="text-gray-500 font-bold">SESSION: </span>
+              <span className="font-bold text-green-700">CONNECTED</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+            {user && (
+              <div className="font-mono text-xs">
+                <span className="font-bold">{user.name}</span>{" "}
+                <span className="text-gray-500">({user.role})</span>
+              </div>
+            )}
+            <button
+              onClick={handleLogout}
+              className="text-xs bg-brand-bronze text-black brutalist-border px-4 py-1.5 font-bold brutalist-hover cursor-pointer"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white brutalist-border p-8 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <div className="border-b-2 border-black pb-4 mb-6 flex justify-between items-end">
+            <div>
+              <span className="font-mono text-sm bg-black text-white px-2 py-1 mb-2 inline-block">
+                {ticketId}
+              </span>
             <h1 className="text-3xl font-black">Ticket Details</h1>
           </div>
         </div>
@@ -113,6 +157,7 @@ export default function TicketDetail({ params }: TicketPageProps) {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

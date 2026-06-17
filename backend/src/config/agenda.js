@@ -1,4 +1,5 @@
-import Agenda from 'agenda';
+import { Agenda } from 'agenda';
+import { MongoBackend } from '@agendajs/mongo-backend';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -6,10 +7,10 @@ dotenv.config();
 const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/overwatch-db';
 
 const agenda = new Agenda({
-  db: {
+  backend: new MongoBackend({
     address: mongoUri,
     collection: 'agendaJobs'
-  },
+  }),
   processEvery: '10 seconds' // scan for jobs every 10 seconds to detect 60s crons promptly
 });
 

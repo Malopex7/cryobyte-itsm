@@ -1,19 +1,49 @@
 "use client";
 
 import React, { useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useStore, Ticket } from '../../../store';
 import { useSocket } from '../../../hooks/useSocket';
 
-import SlaCountdown from '../../../../components/tickets/SlaCountdown';
+import SlaCountdown from '../../../components/tickets/SlaCountdown';
 
 export default function TechnicianDashboard() {
-  const { tickets, setTickets, updateTicket, addTicket } = useStore();
+  const router = useRouter();
+  const { tickets, setTickets, updateTicket, addTicket, user, token, logout } = useStore();
 
-  // Fetch initial tickets (placeholder for actual API call)
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/v1/auth/logout', { method: 'POST' });
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+    logout();
+    router.push('/login');
+  };
+
+  // Fetch initial tickets from backend
   useEffect(() => {
-    // In a real app, you would fetch the initial list of active tickets here
-    // fetch('/api/v1/tickets').then(res => res.json()).then(data => setTickets(data));
-  }, [setTickets]);
+    const fetchTickets = async () => {
+      try {
+        const response = await fetch('/api/v1/tickets', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await response.json();
+        if (response.ok) {
+          setTickets(data.data.tickets || []);
+        }
+      } catch (err) {
+        console.error('Failed to load technician incident queue:', err);
+      }
+    };
+
+    if (token) {
+      fetchTickets();
+    }
+  }, [token, setTickets]);
 
   // Real-time socket listeners for new tickets and updates
   useSocket('ticket:created', (newTicket) => addTicket(newTicket as Ticket));
@@ -31,6 +61,34 @@ export default function TechnicianDashboard() {
   return (
     <div className="min-h-screen bg-[#fbfaf2] text-[#1b1c18] p-8 font-sans">
       <div className="max-w-[1440px] mx-auto">
+        {/* Top Header Panel */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white brutalist-border p-4 mb-8 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] gap-4 rounded-lg">
+          <div className="flex items-center gap-4">
+            <Link href="/" className="text-xs font-mono font-bold uppercase border-2 border-black px-3 py-1.5 bg-[#efeee7] hover:bg-gray-200">
+              ← Main Site
+            </Link>
+            <div className="font-mono text-xs">
+              <span className="text-gray-500 font-bold">SESSION: </span>
+              <span className="font-bold text-green-700">CONNECTED</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+            {user && (
+              <div className="font-mono text-xs">
+                <span className="font-bold">{user.name}</span>{" "}
+                <span className="text-gray-500">({user.role})</span>
+              </div>
+            )}
+            <button
+              onClick={handleLogout}
+              className="text-xs bg-brand-bronze text-black brutalist-border px-4 py-1.5 font-bold brutalist-hover cursor-pointer"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+
         <h1 className="text-4xl font-black tracking-tighter mb-8">Technician War Room</h1>
         
         <div className="bg-white brutalist-border p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">

@@ -15,6 +15,7 @@ export interface Ticket {
   subject: string;
   description: string;
   status: 'New' | 'In Progress' | 'Waiting on Client' | 'Resolved' | 'Closed';
+  priority?: 'P1' | 'P2' | 'P3' | 'P4';
   matrix: {
     impact: number;
     urgency: number;
@@ -99,7 +100,9 @@ export const useStore = create<AppState>()(
       partialize: (state) => ({ 
         user: state.user, 
         token: state.token, 
-        isAuthenticated: state.isAuthenticated 
+        isAuthenticated: state.isAuthenticated,
+        tickets: state.tickets,
+        selectedTicket: state.selectedTicket
       }),
     }
   )

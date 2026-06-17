@@ -1,0 +1,24 @@
+{
+  "name": "Overwatch ITSM",
+  "short_name": "Overwatch",
+  "description": "Enterprise Real-Time IT Service Management",
+  "start_url": "/technician/dashboard",
+  "display": "standalone",
+  "background_color": "#fbfaf2",
+  "theme_color": "#4f6534",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/my_assets/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/my_assets/logo2.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

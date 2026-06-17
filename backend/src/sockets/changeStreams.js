@@ -5,20 +5,24 @@ export const initChangeStreams = (io) => {
   
   const changeStream = Ticket.watch(
     [
-      { $match: { operationType: 'update' } }
+      { $match: { operationType: { $in: ['insert', 'update'] } } }
     ],
     { fullDocument: 'updateLookup' }
   );
 
   changeStream.on('change', (change) => {
-    console.log(`Change Stream intercepted update for Ticket ${change.documentKey._id}`);
+    console.log(`Change Stream intercepted ${change.operationType} for Ticket ${change.documentKey._id}`);
     
-    // Retrieve the full updated document
-    const updatedTicket = change.fullDocument;
+    const ticketDoc = change.fullDocument;
     
-    if (updatedTicket) {
-      // Broadcast the updated ticket to all connected clients
-      io.emit('ticket-updated', updatedTicket);
+    if (ticketDoc) {
+      if (change.operationType === 'insert') {
+        io.emit('ticket-created', ticketDoc);
+        io.emit('ticket:created', ticketDoc);
+      } else if (change.operationType === 'update') {
+        io.emit('ticket-updated', ticketDoc);
+        io.emit('ticket:updated', ticketDoc);
+      }
     }
   });
 

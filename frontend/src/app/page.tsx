@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useStore } from "../store";
 import {
   Ticket,
   Terminal,
@@ -61,6 +62,17 @@ const LOG_TEMPLATES = [
 ];
 
 export default function Home() {
+  const { isAuthenticated, user, logout } = useStore();
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/v1/auth/logout", { method: "POST" });
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
+    logout();
+  };
+
   // ── State ──
   const [logs, setLogs] = useState<string[]>([]);
   const [currentTyping, setCurrentTyping] = useState("");
@@ -149,29 +161,55 @@ export default function Home() {
 
         <div className="hidden md:flex items-center space-x-6">
           <Link
-            href="#"
+            href="/portal"
             className="text-sm font-medium text-[#44483d] hover:bg-[#b6d094]/30 transition-colors px-3 py-2 rounded"
           >
             Client Portal
           </Link>
+          {isAuthenticated && user?.role === "Admin" && (
+            <Link
+              href="/admin"
+              className="text-sm font-medium text-[#44483d] hover:bg-[#b6d094]/30 transition-colors px-3 py-2 rounded font-bold"
+            >
+              Admin Dashboard
+            </Link>
+          )}
           <Link
-            href="#"
+            href="/technician/dashboard"
             className="text-sm font-medium text-[#44483d] hover:bg-[#b6d094]/30 transition-colors px-3 py-2 rounded"
           >
             Technician Hub
           </Link>
           <Link
-            href="#"
+            href="/test"
             className="text-sm font-medium text-[#44483d] hover:bg-[#b6d094]/30 transition-colors px-3 py-2 rounded"
           >
             System Status
           </Link>
         </div>
 
-        <div>
-          <button className="text-sm bg-brand-olive text-black brutalist-border px-5 py-2 font-bold brutalist-hover">
-            Staff Login
-          </button>
+        <div className="flex items-center gap-4">
+          {isAuthenticated && user ? (
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:flex flex-col text-right font-mono text-xs">
+                <span className="font-bold">{user.name}</span>
+                <span className="text-gray-500">{user.role}</span>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="text-sm bg-brand-bronze text-black brutalist-border px-4 py-2 font-bold brutalist-hover inline-block text-center cursor-pointer"
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="text-sm bg-brand-olive text-black brutalist-border px-5 py-2 font-bold brutalist-hover inline-block text-center"
+            >
+              Staff Login
+            </Link>
+          )}
         </div>
       </nav>
 
@@ -211,14 +249,20 @@ export default function Home() {
             className="reveal-animate flex flex-wrap justify-center gap-4 pt-4"
             style={{ animationDelay: "200ms" }}
           >
-            <button className="bg-brand-olive text-black brutalist-border px-8 py-4 font-bold text-base rounded neo-brutalist-hover flex items-center gap-2">
+            <Link
+              href="/portal"
+              className="bg-brand-olive text-black brutalist-border px-8 py-4 font-bold text-base rounded neo-brutalist-hover flex items-center gap-2 text-center"
+            >
               Submit Support Ticket
               <Ticket className="h-5 w-5" />
-            </button>
-            <button className="bg-transparent border-2 border-brand-bronze text-[#CA9F7D] px-8 py-4 font-bold text-base rounded neo-brutalist-hover hover:bg-brand-bronze hover:text-black flex items-center gap-2">
+            </Link>
+            <Link
+              href="/technician/dashboard"
+              className="bg-transparent border-2 border-brand-bronze text-[#CA9F7D] px-8 py-4 font-bold text-base rounded neo-brutalist-hover hover:bg-brand-bronze hover:text-black flex items-center gap-2 text-center"
+            >
               Open Technician Console
               <Terminal className="h-5 w-5" />
-            </button>
+            </Link>
           </div>
         </section>
 
@@ -297,9 +341,12 @@ export default function Home() {
                 </li>
               </ul>
             </div>
-            <button className="w-full brutalist-border py-4 font-bold text-[#1b1c18] bg-white transition-all group-hover:bg-[#b6d094] group-hover:text-black">
+            <Link
+              href="/portal"
+              className="w-full brutalist-border py-4 font-bold text-[#1b1c18] bg-white transition-all group-hover:bg-[#b6d094] group-hover:text-black text-center block"
+            >
               Access Client Portal
-            </button>
+            </Link>
           </div>
 
           {/* Right Card: Tech Operations */}
@@ -326,9 +373,12 @@ export default function Home() {
                 </li>
               </ul>
             </div>
-            <button className="w-full brutalist-border py-4 font-bold text-[#1b1c18] bg-white transition-all group-hover:bg-[#ffab68] group-hover:text-black">
+            <Link
+              href="/technician/dashboard"
+              className="w-full brutalist-border py-4 font-bold text-[#1b1c18] bg-white transition-all group-hover:bg-[#ffab68] group-hover:text-black text-center block"
+            >
               Enter Dashboard
-            </button>
+            </Link>
           </div>
         </section>
 

@@ -20,7 +20,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
     console.log(`[Socket] Connecting to server at: ${apiUrl}`);
 
     const socketInstance = io(apiUrl, {

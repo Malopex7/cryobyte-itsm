@@ -1,10 +1,11 @@
 import { Router } from 'express';
-import { register, login, refresh, logout, getMe } from '../../../controllers/authController.js';
+import { register, login, refresh, logout, getMe, getClients } from '../../../controllers/authController.js';
 import { protect } from '../../../middlewares/auth.js';
 
 const router = Router();
 
 // Public auth routes
+router.get('/clients', getClients);
 router.post('/register', register);
 router.post('/login', login);
 router.post('/refresh', refresh);

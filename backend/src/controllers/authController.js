@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import Client from '../models/Client.js';
 import { AppError } from '../middlewares/error.js';
 
 // Helper: Generate Access Token (15 min lifespan)
@@ -183,3 +184,21 @@ export const getMe = (req, res) => {
     }
   });
 };
+
+/**
+ * Get active client companies
+ */
+export const getClients = async (req, res, next) => {
+  try {
+    const clients = await Client.find({ isActive: true }).select('name _id').sort({ name: 1 });
+    res.status(200).json({
+      status: 'success',
+      data: {
+        clients
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
