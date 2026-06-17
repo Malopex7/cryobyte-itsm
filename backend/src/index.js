@@ -8,10 +8,18 @@ import http from 'http';
 import { errorHandler, AppError } from './middlewares/error.js';
 import { initSocket } from './config/socket.js';
 import { initChangeStreams } from './sockets/changeStreams.js';
+import authRoutes from './routes/api/v1/authRoutes.js';
+import assetRoutes from './routes/api/v1/assetRoutes.js';
+import emailParseRouter from './routes/webhooks/emailParse.js';
 
 dotenv.config();
 const app = express();
 app.use(express.json());
+
+// API Routes
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/assets', assetRoutes);
+app.use('/api/v1/tickets/webhook/email', emailParseRouter);
 
 // Create HTTP server and wrap Express app
 const server = http.createServer(app);

@@ -12,15 +12,15 @@ Establish the security foundation and schema architecture.
   - Frontend: `npm install socket.io-client` (Complete)
 - [x] **Core Ticket Schema**
   - File: `backend/src/models/Ticket.js` (Complete)
-- [ ] **User & Client Schemas**
+- [x] **User & Client Schemas**
   - [x] Implement `User.js` Mongoose schema (Roles: `Client`, `Technician`, `Admin`).
-  - [ ] Implement `Client.js` Mongoose schema (Company details, SLAs).
+  - [x] Implement `Client.js` Mongoose schema (Company details, SLAs).
   - Files:
     - [NEW] [User.js](file:///d:/cursor-dev/cryobyte-itsm/backend/src/models/User.js)
     - [NEW] [Client.js](file:///d:/cursor-dev/cryobyte-itsm/backend/src/models/Client.js)
-- [ ] **Authentication Middleware & JWT Lifecycle**
-  - [ ] Implement bcrypt password hashing & JWT token generation.
-  - [ ] Implement role validation middleware (`requireRole(['Technician', 'Admin'])`).
+- [x] **Authentication Middleware & JWT Lifecycle**
+  - [x] Implement bcrypt password hashing & JWT token generation.
+  - [x] Implement role validation middleware (`requireRole(['Technician', 'Admin'])`).
   - Files:
     - [NEW] [auth.js](file:///d:/cursor-dev/cryobyte-itsm/backend/src/middlewares/auth.js)
     - [NEW] [authController.js](file:///d:/cursor-dev/cryobyte-itsm/backend/src/controllers/authController.js)
@@ -31,16 +31,16 @@ Establish the security foundation and schema architecture.
 ## 📤 Phase 2: Ingestion Pipeline & GridFS Large Object Storage
 Set up filesystems and multiple entry channels for ticket creation.
 
-- [ ] **GridFS Engine Setup**
-  - [ ] Configure Multer storage engine piping uploads directly into Mongo `GridFSBucket`.
-  - [ ] Implement chunk-streaming preview endpoint `/api/v1/assets/:fileId/stream` handling proper Content-Types.
+- [x] **GridFS Engine Setup**
+  - [x] Configure Multer storage engine piping uploads directly into Mongo `GridFSBucket`.
+  - [x] Implement chunk-streaming preview endpoint `/api/v1/assets/:fileId/stream` handling proper Content-Types.
   - Files:
     - [NEW] [upload.js](file:///d:/cursor-dev/cryobyte-itsm/backend/src/middlewares/upload.js)
     - [NEW] [assetController.js](file:///d:/cursor-dev/cryobyte-itsm/backend/src/controllers/assetController.js)
     - [NEW] [assetRoutes.js](file:///d:/cursor-dev/cryobyte-itsm/backend/src/routes/api/v1/assetRoutes.js)
-- [ ] **SendGrid Inbound Email Webhook**
-  - [ ] Route `/api/v1/tickets/webhook/email` parsing email parameters.
-  - [ ] Auto-link sender email to `clientId` and stream email attachments directly to GridFS.
+- [x] **SendGrid Inbound Email Webhook**
+  - [x] Route `/api/v1/tickets/webhook/email` parsing email parameters.
+  - [x] Auto-link sender email to `clientId` and stream email attachments directly to GridFS.
   - File:
     - [NEW] [emailParse.js](file:///d:/cursor-dev/cryobyte-itsm/backend/src/routes/webhooks/emailParse.js)
 - [ ] **ChatOps Slash Commands API**

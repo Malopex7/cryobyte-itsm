@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { useSocket } from '../../hooks/useSocket';
 import { useSocketContext } from '../../contexts/SocketContext';
 
@@ -111,8 +111,9 @@ export default function RealTimeTestPage() {
       }
       const data = await response.json();
       console.log('Ticket updated API response:', data);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'API request failed');
+    } catch (err) {
+      const error = err as Error;
+      setErrorMsg(error.message || 'API request failed');
     } finally {
       setIsUpdating(false);
     }
@@ -151,7 +152,7 @@ export default function RealTimeTestPage() {
             <div>
               <h2 className="text-xl font-bold text-white">Field Presence Simulator</h2>
               <p className="text-xs text-slate-400 mt-1">
-                Technician B's screen locks when Technician A focuses on a field.
+                Technician B&apos;s screen locks when Technician A focuses on a field.
               </p>
             </div>
 
@@ -236,7 +237,7 @@ export default function RealTimeTestPage() {
               <div className="space-y-3 max-h-[280px] overflow-y-auto pr-1">
                 {ticketLogs.length === 0 ? (
                   <div className="text-center py-8 border border-dashed border-slate-800 rounded-lg text-slate-500 text-xs">
-                    No updates detected yet. Click "Trigger DB Update" above.
+                    No updates detected yet. Click &quot;Trigger DB Update&quot; above.
                   </div>
                 ) : (
                   ticketLogs.map((log, index) => (
