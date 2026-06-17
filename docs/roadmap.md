@@ -43,9 +43,9 @@ Set up filesystems and multiple entry channels for ticket creation.
   - [x] Auto-link sender email to `clientId` and stream email attachments directly to GridFS.
   - File:
     - [NEW] [emailParse.js](file:///d:/cursor-dev/cryobyte-itsm/backend/src/routes/webhooks/emailParse.js)
-- [ ] **ChatOps Slash Commands API**
-  - [ ] Route `/api/v1/tickets/webhook/chatops` designed for Slack/Teams hooks.
-  - [ ] Parse slash inputs and return structured JSON confirmations.
+- [x] **ChatOps Slash Commands API**
+  - [x] Route `/api/v1/tickets/webhook/chatops` designed for Slack/Teams hooks.
+  - [x] Parse slash inputs and return structured JSON confirmations.
   - File:
     - [NEW] [chatOps.js](file:///d:/cursor-dev/cryobyte-itsm/backend/src/routes/webhooks/chatOps.js)
 
@@ -54,20 +54,20 @@ Set up filesystems and multiple entry channels for ticket creation.
 ## ⏰ Phase 3: Dual-Clock SLA Engine & Background Workers
 Implement business calendar logic and automated SLA breach checks.
 
-- [ ] **Holiday Calendar and SAST Local Time Configuration**
-  - [ ] Define South African Standard Time (SAST / UTC+2) constraints.
-  - [ ] Create public holiday JSON database matching SA calendar.
+- [x] **Holiday Calendar and SAST Local Time Configuration**
+  - [x] Define South African Standard Time (SAST / UTC+2) constraints.
+  - [x] Create public holiday JSON database matching SA calendar.
   - File:
     - [NEW] [holidays.json](file:///d:/cursor-dev/cryobyte-itsm/backend/src/services/holidays.json)
-- [ ] **SLA Calculations Engine**
-  - [ ] **P1 Calendar Clock:** Linear duration math (24/7/365).
-  - [ ] **P2-P4 Business Clock:** Mon-Fri, 08:00 to 17:00 SAST clock freezing.
-  - [ ] **Pause/Resume Mechanics:** Push targets forward by exact delta minutes when ticket status shifts out of `Waiting on Client`.
+- [x] **SLA Calculations Engine**
+  - [x] **P1 Calendar Clock:** Linear duration math (24/7/365).
+  - [x] **P2-P4 Business Clock:** Mon-Fri, 08:00 to 17:00 SAST clock freezing.
+  - [x] **Pause/Resume Mechanics:** Push targets forward by exact delta minutes when ticket status shifts out of `Waiting on Client`.
   - File:
     - [NEW] [slaEngine.js](file:///d:/cursor-dev/cryobyte-itsm/backend/src/services/slaEngine.js)
-- [ ] **Agenda.js Background Watchdog Worker**
-  - [ ] Run 60-second cron checks identifying active tickets passing `ackTarget` or `resolveTarget`.
-  - [ ] Mutate flags `sla.ackBreached: true` / `sla.resolveBreached: true`.
+- [x] **Agenda.js Background Watchdog Worker**
+  - [x] Run 60-second cron checks identifying active tickets passing `ackTarget` or `resolveTarget`.
+  - [x] Mutate flags `sla.ackBreached: true` / `sla.resolveBreached: true`.
   - Files:
     - [NEW] [agenda.js](file:///d:/cursor-dev/cryobyte-itsm/backend/src/config/agenda.js)
     - [NEW] [slaWatchdog.js](file:///d:/cursor-dev/cryobyte-itsm/backend/src/jobs/slaWatchdog.js)
