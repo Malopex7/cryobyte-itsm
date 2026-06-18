@@ -39,8 +39,12 @@ export default function TicketDetail({ params }: TicketPageProps) {
         const data = await response.json();
         if (response.ok) {
           setTicket(data.data.ticket);
+          const qId = data.data.ticket.queueId?._id || data.data.ticket.queueId;
+          const cId = data.data.ticket.clientId?._id || data.data.ticket.clientId;
+          fetchSupportData(qId, cId);
         } else {
           console.error('Failed to fetch ticket:', data.message);
+          fetchSupportData();
         }
       } catch (err) {
         console.error('Error fetching ticket:', err);
@@ -49,10 +53,18 @@ export default function TicketDetail({ params }: TicketPageProps) {
       }
     };
 
-    const fetchSupportData = async () => {
+    const fetchSupportData = async (qId?: string, cId?: string) => {
       try {
+        let url = '/api/v1/tickets/technicians';
+        const params = new URLSearchParams();
+        if (qId) params.append('queueId', qId);
+        if (cId) params.append('clientId', cId);
+        if (params.toString()) {
+          url += `?${params.toString()}`;
+        }
+
         const [resTechs, resQueues] = await Promise.all([
-          fetch('/api/v1/admin/technicians', { headers }),
+          fetch(url, { headers }),
           fetch('/api/v1/queues', { headers })
         ]);
         if (resTechs.ok) {
@@ -70,7 +82,6 @@ export default function TicketDetail({ params }: TicketPageProps) {
 
     if (token && ticketId) {
       fetchTicket();
-      fetchSupportData();
     }
   }, [token, ticketId]);
 
@@ -115,18 +126,31 @@ export default function TicketDetail({ params }: TicketPageProps) {
   // Handle queue routing (dispatcher / admin only)
   const handleQueueChange = async (newQueueId: string | null) => {
     setActionError(null);
+    const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
     try {
       const response = await fetch(`/api/v1/tickets/${ticketId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers,
         body: JSON.stringify({ queueId: newQueueId })
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Failed to update queue');
+
       setTicket(data.data.ticket);
       updateTicket(data.data.ticket);
+      const qId = data.data.ticket.queueId?._id || data.data.ticket.queueId;
+      const cId = data.data.ticket.clientId?._id || data.data.ticket.clientId;
+      if (qId) {
+        let techUrl = `/api/v1/tickets/technicians?queueId=${qId}`;
+        if (cId) techUrl += `&clientId=${cId}`;
+        const techRes = await fetch(techUrl, { headers });
+        if (techRes.ok) {
+          const techData = await techRes.json();
+          setTechnicians(techData.data.technicians || []);
+        }
+      }
+
     } catch (err: any) {
-      console.error('Queue change error:', err);
       setActionError(err.message || 'Failed to update queue assignment.');
     }
   };
@@ -325,7 +349,9 @@ export default function TicketDetail({ params }: TicketPageProps) {
             {user && (
               <div className="font-mono text-xs">
                 <span className="font-bold">{user.name}</span>{" "}
-                <span className="text-gray-500">({user.role})</span>
+                <span className="text-gray-500">
+                  ({user.role}{user.role !== 'Admin' && !user.hasAllQueueAccess && user.clientId && typeof user.clientId === 'object' ? ` - ${user.clientId.name}` : ''})
+                </span>
               </div>
             )}
             <button
@@ -408,11 +434,18 @@ export default function TicketDetail({ params }: TicketPageProps) {
                       className="w-full p-2 border-2 border-black bg-white text-xs font-mono focus:outline-none focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
                     >
                       <option value="">— Unassigned —</option>
-                      {technicians.map(t => (
-                        <option key={t._id} value={t._id}>
-                          {t.name}{t._id === user?._id ? ' (me)' : ''}
-                        </option>
-                      ))}
+                      {technicians
+                        .filter(t => {
+                          const ticketClientId = ticket.clientId && typeof ticket.clientId === 'object' ? ticket.clientId._id : ticket.clientId;
+                          const techClientId = (t as any).clientId && typeof (t as any).clientId === 'object' ? (t as any).clientId._id : (t as any).clientId;
+                          return !techClientId || techClientId === ticketClientId;
+                        })
+                        .map(t => (
+                          <option key={t._id} value={t._id}>
+                            {t.name}{t._id === user?._id ? ' (me)' : ''}
+                          </option>
+                        ))
+                      }
                     </select>
                   </div>
 
@@ -464,9 +497,19 @@ export default function TicketDetail({ params }: TicketPageProps) {
                       className="w-full p-2 border-2 border-black bg-white text-xs font-mono focus:outline-none focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
                     >
                       <option value="">— Unqueued —</option>
-                      {queues.filter(q => q.isActive).map(q => (
-                        <option key={q._id} value={q._id}>{q.name}</option>
-                      ))}
+                      {queues
+                        .filter(q => q.isActive)
+                        .filter(q => {
+                          const clientName = (ticket.clientId && typeof ticket.clientId === 'object' ? ticket.clientId.name : '').toLowerCase();
+                          if (!clientName) return true;
+                          const parts = q.name.split(' - ');
+                          const queueCompany = (parts.length > 1 ? parts[1].trim() : q.name).toLowerCase();
+                          return clientName.includes(queueCompany) || queueCompany.includes(clientName);
+                        })
+                        .map(q => (
+                          <option key={q._id} value={q._id}>{q.name}</option>
+                        ))
+                      }
                     </select>
                   </div>
                 </div>

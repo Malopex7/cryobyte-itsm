@@ -198,7 +198,9 @@ export default function Home() {
             <div className="flex items-center gap-3">
               <div className="hidden sm:flex flex-col text-right font-mono text-xs">
                 <span className="font-bold">{user.name}</span>
-                <span className="text-gray-500">{user.role}</span>
+                <span className="text-gray-500">
+                  {user.role}{user.role !== 'Admin' && !user.hasAllQueueAccess && user.clientId && typeof user.clientId === 'object' ? ` - ${user.clientId.name}` : ''}
+                </span>
               </div>
               <button
                 onClick={handleLogout}

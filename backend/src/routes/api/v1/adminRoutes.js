@@ -1,11 +1,10 @@
 import { Router } from 'express';
-import { getClients, createClient, getUsers, getTechnicians, updateUser, getAdminMetrics } from '../../../controllers/adminController.js';
+import { getClients, createClient, getUsers, getTechnicians, updateUser, getAdminMetrics, createUser, bulkCreateUsers, deleteUser } from '../../../controllers/adminController.js';
 import { getQueues, createQueue, updateQueue, updateQueueMembers, deleteQueue } from '../../../controllers/queueController.js';
 import { protect, requireRole } from '../../../middlewares/auth.js';
 
 const router = Router();
 
-// Protect all admin endpoints with session check & role-restriction
 router.use(protect);
 router.use(requireRole(['Admin']));
 
@@ -16,12 +15,16 @@ router.route('/clients')
   .post(createClient);
 
 router.route('/users')
-  .get(getUsers);
+  .get(getUsers)
+  .post(createUser);
+
+router.post('/users/bulk', bulkCreateUsers);
 
 router.get('/technicians', getTechnicians);
 
 router.route('/users/:id')
-  .patch(updateUser);
+  .patch(updateUser)
+  .delete(deleteUser);
 
 // Queue (Bucket) management
 router.route('/queues')
@@ -35,3 +38,4 @@ router.route('/queues/:id')
 router.patch('/queues/:id/members', updateQueueMembers);
 
 export default router;
+

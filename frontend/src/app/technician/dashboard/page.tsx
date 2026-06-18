@@ -127,7 +127,9 @@ export default function TechnicianDashboard() {
             {user && (
               <div className="font-mono text-xs flex items-center gap-2">
                 <span className="font-bold">{user.name}</span>
-                <span className="text-gray-500">({user.role})</span>
+                <span className="text-gray-500">
+                  ({user.role}{user.role !== 'Admin' && !user.hasAllQueueAccess && user.clientId && typeof user.clientId === 'object' ? ` - ${user.clientId.name}` : ''})
+                </span>
                 {isDispatcher && user.role !== 'Admin' && (
                   <span className="px-2 py-0.5 bg-purple-100 text-purple-800 border border-purple-800 text-[10px] font-bold uppercase">Dispatcher</span>
                 )}

@@ -1,6 +1,7 @@
 import Client from '../models/Client.js';
 import User from '../models/User.js';
 import Ticket from '../models/Ticket.js';
+import Queue from '../models/Queue.js';
 import { AppError } from '../middlewares/error.js';
 
 /**
@@ -77,8 +78,28 @@ export const getUsers = async (req, res, next) => {
  */
 export const getTechnicians = async (req, res, next) => {
   try {
-    const technicians = await User.find({ role: { $in: ['Technician', 'Admin'] } })
-      .select('name email role hasAllQueueAccess')
+    const { queueId, clientId } = req.query;
+    const query = { role: 'Technician', hasAllQueueAccess: { $ne: true } };
+
+    if (queueId) {
+      const queue = await Queue.findById(queueId);
+      if (queue && queue.members && queue.members.length > 0) {
+        query._id = { $in: queue.members };
+      } else {
+        query._id = { $in: [] };
+      }
+    }
+
+    if (clientId) {
+      query.$or = [
+        { clientId: clientId },
+        { clientId: { $exists: false } },
+        { clientId: null }
+      ];
+    }
+
+    const technicians = await User.find(query)
+      .select('name email role hasAllQueueAccess clientId')
       .sort({ name: 1 });
 
     res.status(200).json({
@@ -103,32 +124,34 @@ export const updateUser = async (req, res, next) => {
     }
 
     if (role) user.role = role;
-    if (role === 'Client') {
-      if (!clientId) {
-        return next(new AppError('Client ID is required when role is Client.', 400));
-      }
-      user.clientId = clientId;
-    } else {
-      user.clientId = undefined; // Clear company association if role is Tech/Admin
-    }
 
-    // Grant or revoke all-queue (dispatcher) access
+    // Client role requires a company; other roles can optionally have one
+    const effectiveRole = role || user.role;
+    if (effectiveRole === 'Client' && !clientId) {
+      return next(new AppError('Client ID is required when role is Client.', 400));
+    }
+    user.clientId = clientId || undefined;
+
+    // Dispatcher access is ONLY meaningful for Technician role.
+    // Admin has full access by role; Client should never dispatch.
     if (hasAllQueueAccess !== undefined) {
-      user.hasAllQueueAccess = hasAllQueueAccess;
+      user.hasAllQueueAccess = effectiveRole === 'Technician' ? hasAllQueueAccess : false;
+    } else if (role && role !== 'Technician') {
+      // If the role is being changed away from Technician, strip the flag
+      user.hasAllQueueAccess = false;
     }
 
     await user.save();
 
     res.status(200).json({
       status: 'success',
-      data: {
-        user
-      }
+      data: { user }
     });
   } catch (error) {
     next(error);
   }
 };
+
 
 /**
  * Get admin stats/metrics
@@ -168,6 +191,128 @@ export const getAdminMetrics = async (req, res, next) => {
         }
       }
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Admin-create a single user (replaces public self-registration)
+ */
+export const createUser = async (req, res, next) => {
+  try {
+    const { name, email, password, role, clientId, hasAllQueueAccess } = req.body;
+
+    if (!name || !email || !password || !role) {
+      return next(new AppError('Name, email, password, and role are required.', 400));
+    }
+    if (role === 'Client' && !clientId) {
+      return next(new AppError('A client company (clientId) is required for the Client role.', 400));
+    }
+
+    const existing = await User.findOne({ email: email.toLowerCase().trim() });
+    if (existing) {
+      return next(new AppError(`A user with email "${email}" already exists.`, 400));
+    }
+
+    const user = await User.create({
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      password,
+      role,
+      clientId: clientId || undefined,
+      hasAllQueueAccess: hasAllQueueAccess || false
+    });
+
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    res.status(201).json({ status: 'success', data: { user: userResponse } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Bulk-create users from an array (mass onboarding)
+ * Body: { users: [{ name, email, password, role, clientId?, hasAllQueueAccess? }] }
+ * Returns per-row results: { summary, created[], failed[] }
+ */
+export const bulkCreateUsers = async (req, res, next) => {
+  try {
+    const { users } = req.body;
+
+    if (!Array.isArray(users) || users.length === 0) {
+      return next(new AppError('Provide a non-empty "users" array.', 400));
+    }
+    if (users.length > 500) {
+      return next(new AppError('Maximum 500 users per bulk import.', 400));
+    }
+
+    const created = [];
+    const failed = [];
+
+    for (const row of users) {
+      const { name, email, password, role, clientId, hasAllQueueAccess } = row;
+
+      if (!name || !email || !password || !role) {
+        failed.push({ email: email || '(missing)', reason: 'Missing required field: name / email / password / role.' });
+        continue;
+      }
+      if (role === 'Client' && !clientId) {
+        failed.push({ email, reason: 'Client role requires a clientId.' });
+        continue;
+      }
+
+      try {
+        const existing = await User.findOne({ email: email.toLowerCase().trim() });
+        if (existing) {
+          failed.push({ email, reason: 'Email already in use.' });
+          continue;
+        }
+        const user = await User.create({
+          name: name.trim(),
+          email: email.toLowerCase().trim(),
+          password,
+          role,
+          clientId: clientId || undefined,
+          hasAllQueueAccess: hasAllQueueAccess || false
+        });
+        const u = user.toObject();
+        delete u.password;
+        created.push(u);
+      } catch (err) {
+        failed.push({ email, reason: err.message });
+      }
+    }
+
+    res.status(201).json({
+      status: 'success',
+      data: {
+        summary: { total: users.length, created: created.length, failed: failed.length },
+        created,
+        failed
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Delete a user account (Admin only, cannot self-delete)
+ */
+export const deleteUser = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return next(new AppError('No user found with that ID.', 404));
+
+    if (user._id.toString() === req.user._id.toString()) {
+      return next(new AppError('You cannot delete your own account.', 400));
+    }
+
+    await user.deleteOne();
+    res.status(200).json({ status: 'success', message: 'User deleted successfully.' });
   } catch (error) {
     next(error);
   }

@@ -7,7 +7,12 @@ import { AppError } from '../middlewares/error.js';
  */
 export const getQueues = async (req, res, next) => {
   try {
-    const queues = await Queue.find()
+    let filter = {};
+    if (req.user.role === 'Technician' && !req.user.hasAllQueueAccess) {
+      filter.members = req.user._id;
+    }
+
+    const queues = await Queue.find(filter)
       .populate('members', 'name email role')
       .sort({ name: 1 });
 

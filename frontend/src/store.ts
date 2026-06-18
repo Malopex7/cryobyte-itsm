@@ -6,7 +6,7 @@ export interface User {
   name: string;
   email: string;
   role: 'Admin' | 'Technician' | 'Client';
-  clientId?: string;
+  clientId?: { _id: string; name: string } | string;
   hasAllQueueAccess?: boolean;
 }
 

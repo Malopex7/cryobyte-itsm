@@ -19,10 +19,11 @@ export const getTickets = async (req, res, next) => {
       }
       filter.clientId = req.user.clientId;
     } else if (req.user.role === 'Technician' && !req.user.hasAllQueueAccess) {
-      // Regular technicians: only see tickets in their queues
+      // Regular technicians: only see tickets in their queues AND their company
       const memberQueues = await Queue.find({ members: req.user._id, isActive: true }).select('_id');
       const queueIds = memberQueues.map(q => q._id);
       filter.queueId = { $in: queueIds };
+      filter.clientId = req.user.clientId ? req.user.clientId : null;
     }
     // Admins and users with hasAllQueueAccess see everything
 
@@ -68,8 +69,12 @@ export const getTicket = async (req, res, next) => {
       return next(new AppError('You do not have permission to access this ticket.', 403));
     }
 
-    // Technicians without all-queue access can only access tickets in their queues
+    // Technicians without all-queue access can only access tickets in their queues AND their company
     if (req.user.role === 'Technician' && !req.user.hasAllQueueAccess) {
+      if (ticket.clientId?._id?.toString() !== req.user.clientId?.toString() && ticket.clientId?.toString() !== req.user.clientId?.toString()) {
+        return next(new AppError('You do not have permission to access this ticket.', 403));
+      }
+
       const memberQueues = await Queue.find({ members: req.user._id, isActive: true }).select('_id');
       const queueIds = memberQueues.map(q => q._id.toString());
       const ticketQueueId = ticket.queueId?._id?.toString() || ticket.queueId?.toString();
@@ -231,7 +236,7 @@ export const updateTicket = async (req, res, next) => {
         
         ticket.assignedTechnicianId = assignedTechnicianId;
         ticket.notes.push({
-          text: `Ticket assigned/claimed by ${techName}.`,
+          text: `Ticket assigned to ${techName} by ${req.user.name}.`,
           author: 'System',
           type: 'system'
         });
@@ -251,9 +256,14 @@ export const updateTicket = async (req, res, next) => {
           });
         }
       } else if (!assignedTechnicianId && oldAssigned) {
+        let oldTechName = 'Unknown Technician';
+        const User = mongoose.model('User');
+        const oldTechUser = await User.findById(oldAssigned);
+        if (oldTechUser) oldTechName = oldTechUser.name;
+
         ticket.assignedTechnicianId = null;
         ticket.notes.push({
-          text: `Ticket assignment released.`,
+          text: `Ticket assignment for ${oldTechName} released by ${req.user.name}.`,
           author: 'System',
           type: 'system'
         });

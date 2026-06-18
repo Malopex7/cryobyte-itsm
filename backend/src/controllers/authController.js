@@ -67,6 +67,9 @@ export const register = async (req, res, next) => {
       clientId
     });
 
+    // Populate clientId before returning
+    await newUser.populate('clientId', 'name');
+
     // Strip password from the response
     const userResponse = newUser.toObject();
     delete userResponse.password;
@@ -94,7 +97,7 @@ export const login = async (req, res, next) => {
     }
 
     // Find user and explicitly select password field
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email }).select('+password').populate('clientId', 'name');
     if (!user || !(await user.comparePassword(password))) {
       return next(new AppError('Incorrect email or password', 401));
     }
@@ -137,7 +140,7 @@ export const refresh = async (req, res, next) => {
     const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
 
     // Fetch user
-    const user = await User.findById(decoded.userId);
+    const user = await User.findById(decoded.userId).populate('clientId', 'name');
     if (!user) {
       return next(new AppError('The user belonging to this token no longer exists.', 401));
     }

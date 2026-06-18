@@ -74,7 +74,7 @@ export default function LoginPage() {
       </div>
 
       <div className="w-full max-w-[460px] bg-white brutalist-border p-8 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rounded-lg">
-        <div className="border-b-2 border-black pb-4 mb-6">
+        <div className="border-b-2 border-black pb-4 mb-6 text-center">
           <h1 className="text-3xl font-black tracking-tight">Staff & Client Login</h1>
           <p className="text-xs text-gray-500 font-mono mt-1">SECURE HANDSHAKE ENGINE v1.0</p>
         </div>
@@ -137,10 +137,9 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-8 border-t border-[#1A1A1A]/10 pt-6 text-center text-xs text-gray-600 font-mono">
-          First time accessing the system?{" "}
-          <Link href="/register" className="font-bold underline text-black hover:text-brand-almond">
-            Register Account
-          </Link>
+          Don&apos;t have an account?{" "}
+          <span className="font-bold text-black">Contact your system administrator</span>{" "}
+          to have your account created.
         </div>
       </div>
     </div>
