@@ -13,6 +13,7 @@ export default function TechnicianDashboard() {
   const [queues, setQueues] = useState<Queue[]>([]);
   const [activeQueueFilter, setActiveQueueFilter] = useState<string | null>(null); // null = "All / Unqueued"
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'priority' | 'sla' | 'newest' | 'oldest' | 'status'>('priority');
 
   const isDispatcher = user?.role === 'Admin' || user?.hasAllQueueAccess;
 
@@ -100,10 +101,33 @@ export default function TechnicianDashboard() {
   });
 
   const priorityOrder: Record<string, number> = { 'P1': 1, 'P2': 2, 'P3': 3, 'P4': 4 };
+  const statusOrder: Record<string, number> = { 'New': 1, 'In Progress': 2, 'Waiting on Client': 3 };
+
   const sortedTickets = [...filteredTickets].sort((a, b) => {
-    const pA = priorityOrder[a.priority || 'P4'] || 4;
-    const pB = priorityOrder[b.priority || 'P4'] || 4;
-    return pA - pB;
+    if (sortBy === 'priority') {
+      const pA = priorityOrder[a.priority || 'P4'] || 4;
+      const pB = priorityOrder[b.priority || 'P4'] || 4;
+      return pA - pB;
+    }
+    if (sortBy === 'sla') {
+      const getSlaTime = (t: Ticket) => {
+        const target = t.sla?.resolveTarget || t.sla?.ackTarget;
+        return target ? new Date(target).getTime() : Infinity;
+      };
+      return getSlaTime(a) - getSlaTime(b);
+    }
+    if (sortBy === 'newest') {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    }
+    if (sortBy === 'oldest') {
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    }
+    if (sortBy === 'status') {
+      const sA = statusOrder[a.status] || 99;
+      const sB = statusOrder[b.status] || 99;
+      return sA - sB;
+    }
+    return 0;
   });
 
   const unqueuedCount = tickets.filter(t => !t.queueId && t.status !== 'Resolved' && t.status !== 'Closed').length;
@@ -189,8 +213,20 @@ export default function TechnicianDashboard() {
                 </button>
               ))}
 
-              {/* Search */}
-              <div className="ml-auto">
+              {/* Sort & Search */}
+              <div className="ml-auto flex items-center gap-3">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                  className="p-2 bg-[#efeee7] border-2 border-black rounded outline-none text-xs font-mono font-bold cursor-pointer focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all text-black"
+                >
+                  <option value="priority">Sort: Priority (Highest)</option>
+                  <option value="sla">Sort: SLA (Most Urgent)</option>
+                  <option value="newest">Sort: Date (Newest)</option>
+                  <option value="oldest">Sort: Date (Oldest)</option>
+                  <option value="status">Sort: Status (New First)</option>
+                </select>
+
                 <input
                   type="text"
                   placeholder="Search INC-XXXX or title..."

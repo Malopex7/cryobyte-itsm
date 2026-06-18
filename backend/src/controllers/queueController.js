@@ -16,9 +16,19 @@ export const getQueues = async (req, res, next) => {
       .populate('members', 'name email role')
       .sort({ name: 1 });
 
+    let resultQueues = queues;
+    if (req.user.role === 'Technician' && req.user.clientId && req.user.clientId.name) {
+      const clientName = req.user.clientId.name.toLowerCase();
+      resultQueues = queues.filter(q => {
+        const parts = q.name.split(' - ');
+        const queueCompany = (parts.length > 1 ? parts[1].trim() : q.name).toLowerCase();
+        return clientName.includes(queueCompany) || queueCompany.includes(clientName);
+      });
+    }
+
     res.status(200).json({
       status: 'success',
-      data: { queues }
+      data: { queues: resultQueues }
     });
   } catch (error) {
     next(error);

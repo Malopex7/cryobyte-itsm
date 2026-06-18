@@ -19,6 +19,8 @@ export const initChangeStreams = (io) => {
       Ticket.findById(ticketDoc._id)
         .populate('clientId', 'name')
         .populate('assignedTechnicianId', 'name email')
+        .populate('createdBy', 'name email')
+        .populate('queueId', 'name color')
         .then(populatedTicket => {
           if (populatedTicket) {
             if (change.operationType === 'insert') {

@@ -17,11 +17,11 @@ export const getTickets = async (req, res, next) => {
       if (!req.user.clientId) {
         return next(new AppError('Your user account is not associated with any client company.', 400));
       }
-      filter.clientId = req.user.clientId;
+      filter.clientId = req.user.clientId._id || req.user.clientId;
     } else if (req.user.role === 'Technician') {
       // All technicians: if they have an allocated company, restrict to it
       if (req.user.clientId) {
-        filter.clientId = req.user.clientId;
+        filter.clientId = req.user.clientId._id || req.user.clientId;
       }
       
       // Regular technicians (not dispatcher): also restrict to queues they are member of
@@ -73,8 +73,12 @@ export const getTicket = async (req, res, next) => {
     }
 
     // Access check: Clients can only access their own company's tickets
-    if (req.user.role === 'Client' && ticket.clientId._id.toString() !== req.user.clientId.toString()) {
-      return next(new AppError('You do not have permission to access this ticket.', 403));
+    if (req.user.role === 'Client') {
+      const ticketClientId = ticket.clientId?._id?.toString() || ticket.clientId?.toString();
+      const userClientId = req.user.clientId?._id?.toString() || req.user.clientId?.toString();
+      if (ticketClientId !== userClientId) {
+        return next(new AppError('You do not have permission to access this ticket.', 403));
+      }
     }
 
     // Technicians check
@@ -82,7 +86,8 @@ export const getTicket = async (req, res, next) => {
       // If technician has an allocated company, restrict to that company's tickets
       if (req.user.clientId) {
         const ticketClientId = ticket.clientId?._id?.toString() || ticket.clientId?.toString();
-        if (ticketClientId !== req.user.clientId.toString()) {
+        const userClientId = req.user.clientId?._id?.toString() || req.user.clientId?.toString();
+        if (ticketClientId !== userClientId) {
           return next(new AppError('You do not have permission to access this ticket.', 403));
         }
       }
@@ -202,14 +207,22 @@ export const updateTicket = async (req, res, next) => {
     }
 
     // Access control
-    if (req.user.role === 'Client' && ticket.clientId.toString() !== req.user.clientId.toString()) {
-      return next(new AppError('You do not have permission to modify this ticket.', 403));
+    if (req.user.role === 'Client') {
+      const ticketClientId = ticket.clientId?.toString();
+      const userClientId = req.user.clientId?._id?.toString() || req.user.clientId?.toString();
+      if (ticketClientId !== userClientId) {
+        return next(new AppError('You do not have permission to modify this ticket.', 403));
+      }
     }
 
     if (req.user.role === 'Technician') {
       // If technician has an allocated company, restrict modification to that company's tickets
-      if (req.user.clientId && ticket.clientId.toString() !== req.user.clientId.toString()) {
-        return next(new AppError('You do not have permission to modify this ticket.', 403));
+      if (req.user.clientId) {
+        const ticketClientId = ticket.clientId?.toString();
+        const userClientId = req.user.clientId?._id?.toString() || req.user.clientId?.toString();
+        if (ticketClientId !== userClientId) {
+          return next(new AppError('You do not have permission to modify this ticket.', 403));
+        }
       }
 
       // Regular technicians (not dispatcher): must also belong to the ticket's queue
@@ -243,12 +256,34 @@ export const updateTicket = async (req, res, next) => {
           if (!queueDoc) return next(new AppError('Queue not found.', 404));
           newQueueName = queueDoc.name;
         }
-        ticket.queueId = newQueueId;
-        ticket.notes.push({
-          text: `Ticket routed to queue: ${newQueueName} by ${req.user.name}.`,
-          author: 'System',
-          type: 'system'
-        });
+        
+        const queueChanged = oldQueueId !== (newQueueId?.toString() || 'unqueued');
+        if (queueChanged) {
+          ticket.queueId = newQueueId;
+          ticket.notes.push({
+            text: `Ticket routed to queue: ${newQueueName} by ${req.user.name}.`,
+            author: 'System',
+            type: 'system'
+          });
+
+          // Automatically unassign and reset status if queue changes and assignedTechnicianId is not explicitly specified in request
+          if (assignedTechnicianId === undefined) {
+            if (ticket.assignedTechnicianId) {
+              let oldTechName = 'Unknown Technician';
+              const User = mongoose.model('User');
+              const oldTechUser = await User.findById(ticket.assignedTechnicianId);
+              if (oldTechUser) oldTechName = oldTechUser.name;
+
+              ticket.notes.push({
+                text: `Ticket assignment for ${oldTechName} released due to queue change.`,
+                author: 'System',
+                type: 'system'
+              });
+            }
+            ticket.assignedTechnicianId = null;
+            status = 'New';
+          }
+        }
       } else {
         return next(new AppError('Only dispatchers and admins can change the queue assignment.', 403));
       }
@@ -300,6 +335,11 @@ export const updateTicket = async (req, res, next) => {
           author: 'System',
           type: 'system'
         });
+
+        // Auto-update status to New when unassigned/released, unless already Closed or Resolved
+        if (ticket.status !== 'New' && ticket.status !== 'Closed' && ticket.status !== 'Resolved') {
+          status = 'New';
+        }
       }
     }
 
