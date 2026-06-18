@@ -371,7 +371,7 @@ export default function TicketDetail({ params }: TicketPageProps) {
               </span>
               <h1 className="text-3xl font-black tracking-tight">{ticket.subject}</h1>
               <p className="text-xs text-gray-500 font-mono mt-1">
-                Logged: {new Date(ticket.createdAt).toLocaleString()}
+                Logged: {new Date(ticket.createdAt).toLocaleString()} by {ticket.createdBy && typeof ticket.createdBy === 'object' ? `${ticket.createdBy.name} (${ticket.createdBy.email})` : 'Unknown Client User'}
               </p>
             </div>
             <div className="flex gap-2 font-mono text-xs">
@@ -389,12 +389,23 @@ export default function TicketDetail({ params }: TicketPageProps) {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
             {/* Left Column: Description & Company */}
             <div className="md:col-span-8 space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#44483d] font-mono mb-1">
-                  Client Company
-                </label>
-                <div className="p-3 border-2 border-black bg-gray-50 font-mono text-sm">
-                  {ticket.clientId && typeof ticket.clientId === 'object' ? ticket.clientId.name : 'Unknown Client'}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-[#44483d] font-mono mb-1">
+                    Client Company
+                  </label>
+                  <div className="p-3 border-2 border-black bg-gray-50 font-mono text-sm h-[46px] flex items-center">
+                    {ticket.clientId && typeof ticket.clientId === 'object' ? ticket.clientId.name : 'Unknown Client'}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-[#44483d] font-mono mb-1">
+                    Logged By (User)
+                  </label>
+                  <div className="p-3 border-2 border-black bg-gray-50 font-mono text-sm h-[46px] flex items-center truncate" title={ticket.createdBy && typeof ticket.createdBy === 'object' ? `${ticket.createdBy.name} (${ticket.createdBy.email})` : 'Unknown Client User'}>
+                    {ticket.createdBy && typeof ticket.createdBy === 'object' ? `${ticket.createdBy.name} (${ticket.createdBy.email})` : 'Unknown Client User'}
+                  </div>
                 </div>
               </div>
 
@@ -552,8 +563,28 @@ export default function TicketDetail({ params }: TicketPageProps) {
                   </label>
                   <div className="space-y-2 font-mono text-xs">
                     {ticket.status !== 'Resolved' && ticket.status !== 'Closed' ? (
-                      <div>
-                        {ticket.sla.resolveTarget ? (
+                      <div className="space-y-2">
+                        {ticket.sla.ackTarget && (
+                          <div className="flex justify-between items-center bg-gray-50 p-2 border border-black">
+                            <span>Response target:</span>
+                            {ticket.status === 'New' ? (
+                              <SlaCountdown 
+                                targetDate={ticket.sla.ackTarget} 
+                                type="ack" 
+                                isBreached={ticket.sla.ackBreached} 
+                                isPaused={ticket.status === 'Waiting on Client'}
+                                pausedAt={ticket.sla.pausedAt}
+                              />
+                            ) : (
+                              <span className={`px-2 py-0.5 font-bold border border-black text-[10px] uppercase ${
+                                ticket.sla.ackBreached ? 'bg-red-600 text-white' : 'bg-green-600 text-white'
+                              }`}>
+                                {ticket.sla.ackBreached ? 'Breached' : 'Met'}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {ticket.sla.resolveTarget && (
                           <div className="flex justify-between items-center bg-gray-50 p-2 border border-black">
                             <span>Resolve target:</span>
                             <SlaCountdown 
@@ -564,22 +595,33 @@ export default function TicketDetail({ params }: TicketPageProps) {
                               pausedAt={ticket.sla.pausedAt}
                             />
                           </div>
-                        ) : ticket.sla.ackTarget ? (
-                          <div className="flex justify-between items-center bg-gray-50 p-2 border border-black">
-                            <span>Ack target:</span>
-                            <SlaCountdown 
-                              targetDate={ticket.sla.ackTarget} 
-                              type="ack" 
-                              isBreached={ticket.sla.ackBreached} 
-                              isPaused={ticket.status === 'Waiting on Client'}
-                              pausedAt={ticket.sla.pausedAt}
-                            />
-                          </div>
-                        ) : null}
+                        )}
                       </div>
                     ) : (
-                      <div className="p-2 bg-green-50 border border-green-500 text-green-700 font-bold text-center uppercase">
-                        SLA Cleared
+                      <div className="space-y-2">
+                        <div className="p-2 bg-green-50 border border-green-500 text-green-700 font-bold text-center uppercase mb-2">
+                          SLA Cleared
+                        </div>
+                        {ticket.sla.ackTarget && (
+                          <div className="flex justify-between items-center bg-gray-50 p-2 border border-black">
+                            <span>Response SLA:</span>
+                            <span className={`px-2 py-0.5 font-bold border border-black text-[10px] uppercase ${
+                              ticket.sla.ackBreached ? 'bg-red-600 text-white' : 'bg-green-600 text-white'
+                            }`}>
+                              {ticket.sla.ackBreached ? 'Breached' : 'Met'}
+                            </span>
+                          </div>
+                        )}
+                        {ticket.sla.resolveTarget && (
+                          <div className="flex justify-between items-center bg-gray-50 p-2 border border-black">
+                            <span>Resolve SLA:</span>
+                            <span className={`px-2 py-0.5 font-bold border border-black text-[10px] uppercase ${
+                              ticket.sla.resolveBreached ? 'bg-red-600 text-white' : 'bg-green-600 text-white'
+                            }`}>
+                              {ticket.sla.resolveBreached ? 'Breached' : 'Met'}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

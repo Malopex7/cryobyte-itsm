@@ -56,6 +56,19 @@ router.post('/', upload.any(), async (req, res, next) => {
       contentType: file.contentType
     }));
 
+    // Find the user associated with sender email to set createdBy
+    let createdByUserId = null;
+    try {
+      const mongoose = await import('mongoose');
+      const User = mongoose.default.model('User');
+      const senderUser = await User.findOne({ email: senderEmail });
+      if (senderUser) {
+        createdByUserId = senderUser._id;
+      }
+    } catch (err) {
+      console.error('Error finding user for email ticket creator:', err);
+    }
+
     // 6. Instantiate and save the ticket
     // Default matrix values: impact 2, urgency 2 resolves to P3 (Medium)
     const newTicket = new Ticket({
@@ -63,7 +76,8 @@ router.post('/', upload.any(), async (req, res, next) => {
       subject: ticketSubject,
       description: ticketDescription,
       matrix: { impact: 2, urgency: 2 },
-      attachments
+      attachments,
+      createdBy: createdByUserId
     });
 
     await newTicket.save();

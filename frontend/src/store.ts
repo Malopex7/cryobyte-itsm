@@ -41,6 +41,11 @@ export interface Ticket {
     pausedAt?: string | null;
   };
   clientId: { _id: string; name: string } | string | null;
+  createdBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  } | string | null;
   assignedTechnicianId?: {
     _id: string;
     name: string;

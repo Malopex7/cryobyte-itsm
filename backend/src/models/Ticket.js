@@ -4,6 +4,7 @@ const ticketSchema = new mongoose.Schema({
   ticketId: { type: String, unique: true },
   clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', required: true },
   assignedTechnicianId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   subject: { type: String, required: true },
   description: { type: String, required: true },
   status: {

@@ -18,14 +18,20 @@ export const getTickets = async (req, res, next) => {
         return next(new AppError('Your user account is not associated with any client company.', 400));
       }
       filter.clientId = req.user.clientId;
-    } else if (req.user.role === 'Technician' && !req.user.hasAllQueueAccess) {
-      // Regular technicians: only see tickets in their queues AND their company
-      const memberQueues = await Queue.find({ members: req.user._id, isActive: true }).select('_id');
-      const queueIds = memberQueues.map(q => q._id);
-      filter.queueId = { $in: queueIds };
-      filter.clientId = req.user.clientId ? req.user.clientId : null;
+    } else if (req.user.role === 'Technician') {
+      // All technicians: if they have an allocated company, restrict to it
+      if (req.user.clientId) {
+        filter.clientId = req.user.clientId;
+      }
+      
+      // Regular technicians (not dispatcher): also restrict to queues they are member of
+      if (!req.user.hasAllQueueAccess) {
+        const memberQueues = await Queue.find({ members: req.user._id, isActive: true }).select('_id');
+        const queueIds = memberQueues.map(q => q._id);
+        filter.queueId = { $in: queueIds };
+      }
     }
-    // Admins and users with hasAllQueueAccess see everything
+    // Admins see everything
 
     // Support query filtering
     if (req.query.status) filter.status = req.query.status;
@@ -35,6 +41,7 @@ export const getTickets = async (req, res, next) => {
     const tickets = await Ticket.find(filter)
       .populate('clientId', 'name')
       .populate('assignedTechnicianId', 'name email')
+      .populate('createdBy', 'name email')
       .populate('queueId', 'name color')
       .sort({ createdAt: -1 });
 
@@ -58,6 +65,7 @@ export const getTicket = async (req, res, next) => {
     const ticket = await Ticket.findById(req.params.id)
       .populate('clientId', 'name')
       .populate('assignedTechnicianId', 'name email')
+      .populate('createdBy', 'name email')
       .populate('queueId', 'name color');
 
     if (!ticket) {
@@ -69,17 +77,24 @@ export const getTicket = async (req, res, next) => {
       return next(new AppError('You do not have permission to access this ticket.', 403));
     }
 
-    // Technicians without all-queue access can only access tickets in their queues AND their company
-    if (req.user.role === 'Technician' && !req.user.hasAllQueueAccess) {
-      if (ticket.clientId?._id?.toString() !== req.user.clientId?.toString() && ticket.clientId?.toString() !== req.user.clientId?.toString()) {
-        return next(new AppError('You do not have permission to access this ticket.', 403));
+    // Technicians check
+    if (req.user.role === 'Technician') {
+      // If technician has an allocated company, restrict to that company's tickets
+      if (req.user.clientId) {
+        const ticketClientId = ticket.clientId?._id?.toString() || ticket.clientId?.toString();
+        if (ticketClientId !== req.user.clientId.toString()) {
+          return next(new AppError('You do not have permission to access this ticket.', 403));
+        }
       }
 
-      const memberQueues = await Queue.find({ members: req.user._id, isActive: true }).select('_id');
-      const queueIds = memberQueues.map(q => q._id.toString());
-      const ticketQueueId = ticket.queueId?._id?.toString() || ticket.queueId?.toString();
-      if (!ticketQueueId || !queueIds.includes(ticketQueueId)) {
-        return next(new AppError('You do not have permission to access this ticket.', 403));
+      // Regular technicians (not dispatcher): must also belong to the ticket's queue
+      if (!req.user.hasAllQueueAccess) {
+        const memberQueues = await Queue.find({ members: req.user._id, isActive: true }).select('_id');
+        const queueIds = memberQueues.map(q => q._id.toString());
+        const ticketQueueId = ticket.queueId?._id?.toString() || ticket.queueId?.toString();
+        if (!ticketQueueId || !queueIds.includes(ticketQueueId)) {
+          return next(new AppError('You do not have permission to access this ticket.', 403));
+        }
       }
     }
 
@@ -130,7 +145,8 @@ export const createTicket = async (req, res, next) => {
       description,
       matrix: finalMatrix,
       attachments,
-      status: 'New'
+      status: 'New',
+      createdBy: req.user._id
     });
 
     // Run priority evaluation pre-save hook logic manually to generate targets
@@ -188,6 +204,23 @@ export const updateTicket = async (req, res, next) => {
     // Access control
     if (req.user.role === 'Client' && ticket.clientId.toString() !== req.user.clientId.toString()) {
       return next(new AppError('You do not have permission to modify this ticket.', 403));
+    }
+
+    if (req.user.role === 'Technician') {
+      // If technician has an allocated company, restrict modification to that company's tickets
+      if (req.user.clientId && ticket.clientId.toString() !== req.user.clientId.toString()) {
+        return next(new AppError('You do not have permission to modify this ticket.', 403));
+      }
+
+      // Regular technicians (not dispatcher): must also belong to the ticket's queue
+      if (!req.user.hasAllQueueAccess) {
+        const memberQueues = await Queue.find({ members: req.user._id, isActive: true }).select('_id');
+        const queueIds = memberQueues.map(q => q._id.toString());
+        const ticketQueueId = ticket.queueId?.toString();
+        if (!ticketQueueId || !queueIds.includes(ticketQueueId)) {
+          return next(new AppError('You do not have permission to modify this ticket.', 403));
+        }
+      }
     }
 
     // Old status & priority for comparison
@@ -400,6 +433,7 @@ export const updateTicket = async (req, res, next) => {
     const populatedTicket = await Ticket.findById(ticket._id)
       .populate('clientId', 'name')
       .populate('assignedTechnicianId', 'name email')
+      .populate('createdBy', 'name email')
       .populate('queueId', 'name color');
 
     res.status(200).json({
