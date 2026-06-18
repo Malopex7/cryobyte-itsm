@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useStore, Ticket } from "../../store";
@@ -38,7 +38,7 @@ export default function ClientPortal() {
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || "Failed to load tickets");
         setMyTickets(data.data.tickets || []);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(err);
         setErrorMsg("Failed to retrieve your company's ticket queue.");
       } finally {
@@ -52,15 +52,15 @@ export default function ClientPortal() {
   }, [token]);
 
   // Real-time socket sync
-  useSocket("ticket:created", (newTicket: any) => {
+  useSocket("ticket:created", (newTicket: unknown) => {
     // Check if ticket belongs to the user's client group
     const ticketDoc = newTicket as Ticket;
-    if (ticketDoc.clientId === user?.clientId || (typeof ticketDoc.clientId === "object" && (ticketDoc.clientId as any)._id === user?.clientId)) {
+    if (ticketDoc.clientId === user?.clientId || (typeof ticketDoc.clientId === "object" && (ticketDoc.clientId as { _id: string })._id === user?.clientId)) {
       setMyTickets((prev) => [ticketDoc, ...prev]);
     }
   });
 
-  useSocket("ticket:updated", (updatedTicket: any) => {
+  useSocket("ticket:updated", (updatedTicket: unknown) => {
     const ticketDoc = updatedTicket as Ticket;
     setMyTickets((prev) =>
       prev.map((t) => (t._id === ticketDoc._id ? ticketDoc : t))
@@ -118,9 +118,10 @@ export default function ClientPortal() {
       setAttachments([]);
 
       // Scroll list into view or let sockets handle insert
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setErrorMsg(err.message || "An error occurred while saving the ticket.");
+      const error = err as { message?: string };
+      setErrorMsg(error.message || "An error occurred while saving the ticket.");
     } finally {
       setSubmitting(false);
     }

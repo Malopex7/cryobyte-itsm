@@ -40,7 +40,7 @@ export interface Ticket {
     resolveBreached: boolean;
     pausedAt?: string | null;
   };
-  clientId: any;
+  clientId: { _id: string; name: string } | string | null;
   assignedTechnicianId?: {
     _id: string;
     name: string;

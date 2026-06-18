@@ -23,7 +23,7 @@ export default function TicketDetail({ params }: TicketPageProps) {
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [technicians, setTechnicians] = useState<{ _id: string; name: string; email: string }[]>([]);
+  const [technicians, setTechnicians] = useState<{ _id: string; name: string; email: string; clientId?: { _id: string; name: string } | string | null }[]>([]);
   const [queues, setQueues] = useState<Queue[]>([]);
   
   // Lock state
@@ -86,7 +86,7 @@ export default function TicketDetail({ params }: TicketPageProps) {
   }, [token, ticketId]);
 
   // Real-time socket sync for ticket updates
-  useSocket('ticket:updated', (updatedTicket: any) => {
+  useSocket('ticket:updated', (updatedTicket: unknown) => {
     const ticketDoc = updatedTicket as Ticket;
     if (ticketDoc._id === ticketId) {
       setTicket(ticketDoc);
@@ -117,9 +117,9 @@ export default function TicketDetail({ params }: TicketPageProps) {
       if (!response.ok) throw new Error(data.message || 'Failed to update ticket assignment');
       setTicket(data.data.ticket);
       updateTicket(data.data.ticket);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Assignment error:', err);
-      setActionError(err.message || 'Failed to update assignment.');
+      setActionError(err instanceof Error ? err.message : 'Failed to update assignment.');
     }
   };
 
@@ -150,8 +150,8 @@ export default function TicketDetail({ params }: TicketPageProps) {
         }
       }
 
-    } catch (err: any) {
-      setActionError(err.message || 'Failed to update queue assignment.');
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to update queue assignment.');
     }
   };
 
@@ -176,9 +176,9 @@ export default function TicketDetail({ params }: TicketPageProps) {
       setTicket(data.data.ticket);
       updateTicket(data.data.ticket);
       setResolutionText(""); // Clear text area
-    } catch (err: any) {
+    } catch (err) {
       console.error('Status change error:', err);
-      setActionError(err.message || 'An error occurred while updating status.');
+      setActionError(err instanceof Error ? err.message : 'An error occurred while updating status.');
     }
   };
 
@@ -200,9 +200,9 @@ export default function TicketDetail({ params }: TicketPageProps) {
       }
       setTicket(data.data.ticket);
       updateTicket(data.data.ticket);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Priority update error:', err);
-      setActionError(err.message || 'An error occurred while updating priority.');
+      setActionError(err instanceof Error ? err.message : 'An error occurred while updating priority.');
     }
   };
 
@@ -230,9 +230,9 @@ export default function TicketDetail({ params }: TicketPageProps) {
       setTicket(data.data.ticket);
       updateTicket(data.data.ticket);
       setResolutionText(""); // Clear text area
-    } catch (err: any) {
+    } catch (err) {
       console.error('Add note error:', err);
-      setActionError(err.message || 'An error occurred while adding note.');
+      setActionError(err instanceof Error ? err.message : 'An error occurred while adding note.');
     }
   };
 
@@ -262,9 +262,9 @@ export default function TicketDetail({ params }: TicketPageProps) {
       setTicket(data.data.ticket);
       updateTicket(data.data.ticket);
       setResolutionText(""); // Clear text area
-    } catch (err: any) {
+    } catch (err) {
       console.error('Resolve ticket error:', err);
-      setActionError(err.message || 'An error occurred while resolving ticket.');
+      setActionError(err instanceof Error ? err.message : 'An error occurred while resolving ticket.');
     }
   };
 
@@ -401,7 +401,7 @@ export default function TicketDetail({ params }: TicketPageProps) {
               {ticket.status === 'Waiting on Client' && ticket.pauseReason && (
                 <div className="p-3 border-2 border-amber-500 bg-amber-50 text-amber-950 font-mono text-xs font-bold shadow-[2px_2px_0px_0px_rgba(217,119,6,1)] rounded">
                   <span className="block text-amber-800 uppercase tracking-widest text-[10px] mb-1">SLA PAUSED REASON</span>
-                  "{ticket.pauseReason}"
+                  &quot;{ticket.pauseReason}&quot;
                 </div>
               )}
 
@@ -437,7 +437,7 @@ export default function TicketDetail({ params }: TicketPageProps) {
                       {technicians
                         .filter(t => {
                           const ticketClientId = ticket.clientId && typeof ticket.clientId === 'object' ? ticket.clientId._id : ticket.clientId;
-                          const techClientId = (t as any).clientId && typeof (t as any).clientId === 'object' ? (t as any).clientId._id : (t as any).clientId;
+                          const techClientId = t.clientId && typeof t.clientId === 'object' ? t.clientId._id : t.clientId;
                           return !techClientId || techClientId === ticketClientId;
                         })
                         .map(t => (
@@ -721,7 +721,7 @@ export default function TicketDetail({ params }: TicketPageProps) {
             <h2 className="text-xl font-bold mb-4">Activity Log & Audit Trail</h2>
             {ticket.notes && ticket.notes.length > 0 ? (
               <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
-                {[...ticket.notes].reverse().map((note: any) => {
+                {[...(ticket.notes || [])].reverse().map((note) => {
                   const isSystem = note.type === 'system';
                   return (
                     <div 
@@ -759,12 +759,12 @@ export default function TicketDetail({ params }: TicketPageProps) {
 
             {ticket.attachments && ticket.attachments.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {ticket.attachments.map((asset: any) => (
+                {(ticket.attachments || []).map((asset) => (
                   <AssetPreview 
-                    key={asset.fileId}
-                    fileId={asset.fileId} 
-                    filename={asset.filename} 
-                    contentType={asset.contentType} 
+                    key={asset.fileId || ''}
+                    fileId={asset.fileId || ''} 
+                    filename={asset.filename || ''} 
+                    contentType={asset.contentType || ''} 
                   />
                 ))}
               </div>

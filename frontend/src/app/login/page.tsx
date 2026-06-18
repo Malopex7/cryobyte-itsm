@@ -50,9 +50,10 @@ export default function LoginPage() {
       } else {
         router.push("/");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[Login Error]:", err);
-      setErrorMsg(err.message || "Connection refused. Please verify backend is running.");
+      const error = err as { message?: string };
+      setErrorMsg(error.message || "Connection refused. Please verify backend is running.");
     } finally {
       setIsLoading(false);
     }

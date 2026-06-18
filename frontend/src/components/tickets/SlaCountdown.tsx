@@ -43,7 +43,7 @@ export default function SlaCountdown({ targetDate, type, isBreached, isPaused, p
     const intervalId = setInterval(updateTimer, 1000);
 
     return () => clearInterval(intervalId);
-  }, [targetDate]);
+  }, [targetDate, isPaused, pausedAt]);
 
   if (!targetDate) return <span className="text-gray-500 font-mono text-xs">No SLA target</span>;
 

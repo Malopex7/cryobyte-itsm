@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useStore, Queue } from "../../store";
-import { AlertCircle, CheckCircle, Plus, Shield, Users, Building, Activity, Sliders } from "lucide-react";
+import { AlertCircle, CheckCircle, Plus, Shield, Users, Building, Sliders } from "lucide-react";
 
 interface ClientCompany {
   _id: string;
@@ -114,7 +114,7 @@ export default function AdminDashboard() {
   const [actionLoading, setActionLoading] = useState(false);
 
   // Load Admin Data
-  const loadAdminData = async () => {
+  const loadAdminData = useCallback(async () => {
     try {
       const headers = { Authorization: `Bearer ${token}` };
 
@@ -144,13 +144,13 @@ export default function AdminDashboard() {
       console.error(err);
       setErrorMsg("Failed to load administration database records.");
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     if (token) {
       loadAdminData();
     }
-  }, [token]);
+  }, [token, loadAdminData]);
 
   const handleLogout = async () => {
     try {
@@ -203,61 +203,11 @@ export default function AdminDashboard() {
       setClientPhone("");
       setClientAddress("");
       loadAdminData(); // Refresh lists
-    } catch (err: any) {
-      console.error(err);
-      setErrorMsg(err.message || "Could not register company.");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Save role / company change for a user
-  const handleSaveUserChange = async (userId: string) => {
-    setErrorMsg(null);
-    setSuccessMsg(null);
-    setActionLoading(true);
-
-    try {
-      const response = await fetch(`/api/v1/admin/users/${userId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          role: editRole,
-          clientId: editClientId || undefined
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Failed to update user.");
-
-      setSuccessMsg(`Successfully updated user role configuration!`);
-      setEditingUserId(null);
-      loadAdminData(); // Refresh lists
-    } catch (err: any) {
-      console.error(err);
-      setErrorMsg(err.message || "Could not update user roles.");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Grant/revoke dispatcher access without opening full edit mode
-  const handleToggleDispatcher = async (userId: string, current: boolean) => {
-    try {
-      const response = await fetch(`/api/v1/admin/users/${userId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ hasAllQueueAccess: !current })
-      });
-      if (response.ok) {
-        setSuccessMsg(`Dispatcher access ${!current ? 'granted' : 'revoked'} successfully.`);
-        loadAdminData();
-      }
     } catch (err) {
       console.error(err);
+      setErrorMsg(err instanceof Error ? err.message : "Could not register company.");
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -278,8 +228,8 @@ export default function AdminDashboard() {
       setQueueName(""); setQueueDescription(""); setQueueColor("#6366f1"); setQueueMembers([]);
       setCreateQueueMemberSearch("");
       loadAdminData();
-    } catch (err: any) {
-      setErrorMsg(err.message);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setActionLoading(false);
     }
@@ -305,8 +255,8 @@ export default function AdminDashboard() {
       setEditingQueueId(null);
       setEditQueueMemberSearch("");
       loadAdminData();
-    } catch (err: any) {
-      setErrorMsg(err.message);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setActionLoading(false);
     }
@@ -322,12 +272,12 @@ export default function AdminDashboard() {
       });
       setSuccessMsg(`Queue "${queueName}" deleted.`);
       loadAdminData();
-    } catch (err: any) {
-      setErrorMsg(err.message);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "An error occurred");
     }
   };
 
-  const startEditingUser = (u: any) => {
+  const startEditingUser = (u: UserProfile) => {
     setEditingUserId(u._id);
     setEditRole(u.role);
     setEditClientId(u.clientId?._id || (clients[0]?._id || ""));
@@ -355,8 +305,8 @@ export default function AdminDashboard() {
       setSuccessMsg(`User "${newName}" created successfully.`);
       setNewName(""); setNewEmail(""); setNewPassword(""); setNewRole("Technician"); setNewClientId(""); setNewHasAllQueueAccess(false);
       loadAdminData();
-    } catch (err: any) {
-      setErrorMsg(err.message);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setActionLoading(false);
     }
@@ -384,8 +334,8 @@ export default function AdminDashboard() {
       setSuccessMsg(`Bulk import complete: ${data.data.summary.created} created, ${data.data.summary.failed} failed.`);
       setBulkRows([]);
       loadAdminData();
-    } catch (err: any) {
-      setErrorMsg(err.message);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setActionLoading(false);
     }
@@ -406,12 +356,20 @@ export default function AdminDashboard() {
       const required = ["name", "email", "password", "role"];
       const missing = required.filter(r => !headers.includes(r));
       if (missing.length) { setErrorMsg(`CSV missing required columns: ${missing.join(", ")}`); return; }
-      const rows: any[] = [];
+      const rows: BulkRow[] = [];
       for (let i = 1; i < lines.length; i++) {
         const vals = lines[i].split(",").map(v => v.trim().replace(/^"|"$/g, ""));
-        const row: any = {};
-        headers.forEach((h, idx) => { row[h] = vals[idx] || ""; });
-        rows.push(row);
+        const rowObj: Record<string, string> = {};
+        headers.forEach((h, idx) => { rowObj[h] = vals[idx] || ""; });
+        const bulkRow: BulkRow = {
+          name: rowObj.name || "",
+          email: rowObj.email || "",
+          password: rowObj.password || "",
+          role: rowObj.role || "",
+          clientId: rowObj.clientid || undefined,
+          hasAllQueueAccess: rowObj.hasallqueueaccess === "true" || rowObj.hasallqueueaccess === "1"
+        };
+        rows.push(bulkRow);
       }
       setBulkRows(rows);
       setBulkTab("bulk");
@@ -433,8 +391,8 @@ export default function AdminDashboard() {
       setSuccessMsg("User deleted successfully.");
       setDeleteConfirmId(null);
       loadAdminData();
-    } catch (err: any) {
-      setErrorMsg(err.message);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "An error occurred");
     }
   };
 
@@ -741,7 +699,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="space-y-1">
                       <label className="block text-xs font-bold uppercase tracking-wider text-[#44483d] font-mono">Role</label>
-                      <select className="w-full p-2.5 border-2 border-black bg-white text-sm outline-none cursor-pointer" value={newRole} onChange={e => setNewRole(e.target.value as any)}>
+                      <select className="w-full p-2.5 border-2 border-black bg-white text-sm outline-none cursor-pointer" value={newRole} onChange={e => setNewRole(e.target.value as "Client" | "Technician" | "Admin")}>
                         <option value="Technician">Technician</option>
                         <option value="Admin">Admin</option>
                         <option value="Client">Client</option>
@@ -982,7 +940,7 @@ Jane Smith,jane@acme.com,Pass456,Admin</code>
                             <div className="mt-1 p-3 bg-[#fcfcfa] border border-dashed border-gray-400 rounded space-y-3 font-mono text-xs">
                               <div className="flex items-center justify-between gap-4">
                                 <span>ROLE:</span>
-                                <select className="p-1.5 border border-black bg-white" value={editRole} onChange={e => setEditRole(e.target.value as any)}>
+                                <select className="p-1.5 border border-black bg-white" value={editRole} onChange={e => setEditRole(e.target.value as "Client" | "Technician" | "Admin")}>
                                   <option value="Client">Client</option>
                                   <option value="Technician">Technician</option>
                                   <option value="Admin">Admin</option>
