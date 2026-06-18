@@ -572,7 +572,7 @@ export default function TicketDetail({ params }: TicketPageProps) {
                                 targetDate={ticket.sla.ackTarget} 
                                 type="ack" 
                                 isBreached={ticket.sla.ackBreached} 
-                                isPaused={ticket.status === 'Waiting on Client'}
+                                isPaused={false}
                                 pausedAt={ticket.sla.pausedAt}
                               />
                             ) : (
