@@ -159,7 +159,7 @@ export const updateUser = async (req, res, next) => {
 export const getAdminMetrics = async (req, res, next) => {
   try {
     const totalTickets = await Ticket.countDocuments();
-    const activeTickets = await Ticket.countDocuments({ status: { $in: ['New', 'In Progress', 'Waiting on Client'] } });
+    const activeTickets = await Ticket.countDocuments({ status: { $in: ['New', 'In Progress', 'Waiting on Client', 'Waiting on Vendor'] } });
     const resolvedTickets = await Ticket.countDocuments({ status: { $in: ['Resolved', 'Closed'] } });
 
     // SLA Breaches

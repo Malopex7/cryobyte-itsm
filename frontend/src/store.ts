@@ -24,7 +24,7 @@ export interface Ticket {
   ticketId: string;
   subject: string;
   description: string;
-  status: 'New' | 'In Progress' | 'Waiting on Client' | 'Resolved' | 'Closed';
+  status: 'New' | 'In Progress' | 'Waiting on Client' | 'Waiting on Vendor' | 'Resolved' | 'Closed';
   priority?: 'P1' | 'P2' | 'P3' | 'P4';
   matrix: {
     impact: number;

@@ -297,7 +297,7 @@ export default function ClientPortal() {
                                 targetDate={ticket.sla.resolveTarget}
                                 type="resolve"
                                 isBreached={ticket.sla.resolveBreached}
-                                isPaused={ticket.status === 'Waiting on Client'}
+                                isPaused={ticket.status === 'Waiting on Client' || ticket.status === 'Waiting on Vendor'}
                                 pausedAt={ticket.sla.pausedAt}
                               />
                             ) : null}

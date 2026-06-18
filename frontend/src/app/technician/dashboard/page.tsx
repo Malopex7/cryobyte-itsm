@@ -101,7 +101,7 @@ export default function TechnicianDashboard() {
   });
 
   const priorityOrder: Record<string, number> = { 'P1': 1, 'P2': 2, 'P3': 3, 'P4': 4 };
-  const statusOrder: Record<string, number> = { 'New': 1, 'In Progress': 2, 'Waiting on Client': 3 };
+  const statusOrder: Record<string, number> = { 'New': 1, 'In Progress': 2, 'Waiting on Client': 3, 'Waiting on Vendor': 4 };
 
   const sortedTickets = [...filteredTickets].sort((a, b) => {
     if (sortBy === 'priority') {
@@ -308,9 +308,9 @@ export default function TechnicianDashboard() {
                       <div className="flex flex-row md:flex-col items-center md:items-end gap-2 justify-between w-full">
                         {ticket.status !== 'Resolved' && ticket.status !== 'Closed' ? (
                           ticket.sla?.resolveTarget ? (
-                            <SlaCountdown targetDate={ticket.sla.resolveTarget} type="resolve" isBreached={ticket.sla.resolveBreached} isPaused={ticket.status === 'Waiting on Client'} pausedAt={ticket.sla.pausedAt} />
+                            <SlaCountdown targetDate={ticket.sla.resolveTarget} type="resolve" isBreached={ticket.sla.resolveBreached} isPaused={ticket.status === 'Waiting on Client' || ticket.status === 'Waiting on Vendor'} pausedAt={ticket.sla.pausedAt} />
                           ) : ticket.sla?.ackTarget ? (
-                            <SlaCountdown targetDate={ticket.sla.ackTarget} type="ack" isBreached={ticket.sla.ackBreached} isPaused={ticket.status === 'Waiting on Client'} pausedAt={ticket.sla.pausedAt} />
+                            <SlaCountdown targetDate={ticket.sla.ackTarget} type="ack" isBreached={ticket.sla.ackBreached} isPaused={ticket.status === 'Waiting on Client' || ticket.status === 'Waiting on Vendor'} pausedAt={ticket.sla.pausedAt} />
                           ) : <div />
                         ) : (
                           <span className="text-xs font-mono font-bold text-green-700 bg-green-50 border-2 border-green-700 px-2 py-1.5 uppercase tracking-wide rounded">SLA Cleared</span>

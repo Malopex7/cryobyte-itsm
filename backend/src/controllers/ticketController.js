@@ -5,6 +5,8 @@ import Queue from '../models/Queue.js';
 import { AppError } from '../middlewares/error.js';
 import { calculateSlaTargets, calculatePauseDelta } from '../services/slaEngine.js';
 
+const isPausingStatus = (s) => s === 'Waiting on Client' || s === 'Waiting on Vendor';
+
 /**
  * Get all tickets (filtered by role & queue access)
  */
@@ -352,8 +354,8 @@ export const updateTicket = async (req, res, next) => {
 
       ticket.status = status;
 
-      // 1. Entering "Waiting on Client" -> Pause the SLA targets clock
-      if (status === 'Waiting on Client') {
+      // 1. Entering a pausing status -> Pause the SLA targets clock
+      if (isPausingStatus(status) && !isPausingStatus(oldStatus)) {
         const reason = pauseReason || note || 'No reason provided';
         if (!reason || !reason.trim() || reason === 'No reason provided') {
           return next(new AppError('A reason is required to pause the SLA clock.', 400));
@@ -362,14 +364,27 @@ export const updateTicket = async (req, res, next) => {
         ticket.pauseReason = reason.trim();
         ticket.lifecycleTimestamps = { ...ticket.lifecycleTimestamps, pendingAt: new Date() };
         ticket.notes.push({
-          text: `SLA paused (Status: Waiting on Client). Reason: ${reason.trim()}`,
+          text: `SLA paused (Status: ${status}). Reason: ${reason.trim()}`,
           author: req.user.name,
           type: 'system'
         });
       }
 
-      // 2. Leaving "Waiting on Client" -> Resume clock and shift targets forward
-      if (oldStatus === 'Waiting on Client' && ticket.sla.pausedAt) {
+      // 1b. Transitioning between two pausing statuses -> Update status and reason but keep timer paused
+      if (isPausingStatus(oldStatus) && isPausingStatus(status) && status !== oldStatus) {
+        const reason = pauseReason || note;
+        if (reason && reason.trim()) {
+          ticket.pauseReason = reason.trim();
+        }
+        ticket.notes.push({
+          text: `Status changed from ${oldStatus} to ${status}. Reason: ${ticket.pauseReason || 'No reason provided'}`,
+          author: req.user.name,
+          type: 'system'
+        });
+      }
+
+      // 2. Leaving a pausing status -> Resume clock and shift targets forward
+      if (isPausingStatus(oldStatus) && !isPausingStatus(status) && ticket.sla.pausedAt) {
         const resumeAt = new Date();
         const deltaMinutes = calculatePauseDelta(ticket.priority, ticket.sla.pausedAt, resumeAt);
 
@@ -393,7 +408,7 @@ export const updateTicket = async (req, res, next) => {
 
       // 3. Resolving
       if (status === 'Resolved') {
-        if (oldStatus === 'Waiting on Client') {
+        if (isPausingStatus(oldStatus)) {
           return next(new AppError('Cannot resolve a ticket directly from a paused state. Please resume the ticket first.', 400));
         }
 
@@ -417,7 +432,7 @@ export const updateTicket = async (req, res, next) => {
     }
 
     // Add manual note if provided and not already logged as part of status transition
-    if (note && note.trim() && status !== 'Waiting on Client' && status !== 'Resolved') {
+    if (note && note.trim() && !isPausingStatus(status) && status !== 'Resolved') {
       ticket.notes.push({
         text: note.trim(),
         author: req.user.name,

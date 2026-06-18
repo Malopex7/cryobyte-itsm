@@ -87,6 +87,24 @@ async function runTest() {
   await ticket3.save();
   console.log(`Ticket 3 created: ${ticket3.ticketId} (_id: ${ticket3._id})`);
 
+  // Create test ticket 4: Waiting on Vendor with expired resolveTarget (should NOT breach because SLA clock is paused)
+  console.log('Creating ticket 4 (no breach due to paused state - Waiting on Vendor)...');
+  const ticket4 = new Ticket({
+    clientId: testClient._id,
+    subject: 'SLA Paused Test Ticket - Vendor',
+    description: 'This ticket should NOT breach because its status is Waiting on Vendor.',
+    matrix: { impact: 3, urgency: 3 }, // P1
+    status: 'Waiting on Vendor',
+    sla: {
+      ackTarget: ackTargetDate2,
+      ackBreached: true,
+      resolveTarget: resolveTargetDate2, // Expired, but status is Waiting on Vendor
+      resolveBreached: false
+    }
+  });
+  await ticket4.save();
+  console.log(`Ticket 4 created: ${ticket4.ticketId} (_id: ${ticket4._id})`);
+
   // Run the check-sla-breaches job manually via Agenda
   console.log('Triggering "check-sla-breaches" job manually...');
   await agenda.now('check-sla-breaches');
@@ -100,11 +118,13 @@ async function runTest() {
   const updatedTicket1 = await Ticket.findById(ticket1._id);
   const updatedTicket2 = await Ticket.findById(ticket2._id);
   const updatedTicket3 = await Ticket.findById(ticket3._id);
+  const updatedTicket4 = await Ticket.findById(ticket4._id);
 
   console.log('\n--- VERIFICATION RESULTS ---');
   console.log(`Ticket 1 (${updatedTicket1.ticketId} - New): ackBreached = ${updatedTicket1.sla.ackBreached} (Expected: true)`);
   console.log(`Ticket 2 (${updatedTicket2.ticketId} - In Progress): resolveBreached = ${updatedTicket2.sla.resolveBreached} (Expected: true)`);
   console.log(`Ticket 3 (${updatedTicket3.ticketId} - Waiting on Client): resolveBreached = ${updatedTicket3.sla.resolveBreached} (Expected: false)`);
+  console.log(`Ticket 4 (${updatedTicket4.ticketId} - Waiting on Vendor): resolveBreached = ${updatedTicket4.sla.resolveBreached} (Expected: false)`);
 
   let success = true;
   if (updatedTicket1.sla.ackBreached !== true) {
@@ -117,6 +137,10 @@ async function runTest() {
   }
   if (updatedTicket3.sla.resolveBreached !== false) {
     console.error('FAIL: Ticket 3 resolveBreached is true (should be false)!');
+    success = false;
+  }
+  if (updatedTicket4.sla.resolveBreached !== false) {
+    console.error('FAIL: Ticket 4 resolveBreached is true (should be false)!');
     success = false;
   }
 

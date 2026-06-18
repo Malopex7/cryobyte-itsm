@@ -29,11 +29,11 @@ export default function(agenda) {
 
       // 2. Find tickets that have breached their resolution target
       // Conditions:
-      // - Status is not 'Resolved', 'Closed', or 'Waiting on Client'
+      // - Status is not 'Resolved', 'Closed', 'Waiting on Client', or 'Waiting on Vendor'
       // - sla.resolveTarget exists and is in the past (<= now)
       // - sla.resolveBreached is not true
       const resolveBreachedTickets = await Ticket.find({
-        status: { $nin: ['Resolved', 'Closed', 'Waiting on Client'] },
+        status: { $nin: ['Resolved', 'Closed', 'Waiting on Client', 'Waiting on Vendor'] },
         'sla.resolveTarget': { $lte: now },
         'sla.resolveBreached': { $ne: true }
       });

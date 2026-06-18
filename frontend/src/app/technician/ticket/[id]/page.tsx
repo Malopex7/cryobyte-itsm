@@ -29,6 +29,9 @@ export default function TicketDetail({ params }: TicketPageProps) {
   // Lock state
   const [lockedBy, setLockedBy] = useState<string | null>(null);
 
+  const [pauseStatus, setPauseStatus] = useState<'Waiting on Client' | 'Waiting on Vendor'>('Waiting on Client');
+  const isPausedStatus = (status: string) => status === 'Waiting on Client' || status === 'Waiting on Vendor';
+
   // Fetch ticket details
   useEffect(() => {
     const headers = { 'Authorization': `Bearer ${token}` };
@@ -409,9 +412,9 @@ export default function TicketDetail({ params }: TicketPageProps) {
                 </div>
               </div>
 
-              {ticket.status === 'Waiting on Client' && ticket.pauseReason && (
+              {isPausedStatus(ticket.status) && ticket.pauseReason && (
                 <div className="p-3 border-2 border-amber-500 bg-amber-50 text-amber-950 font-mono text-xs font-bold shadow-[2px_2px_0px_0px_rgba(217,119,6,1)] rounded">
-                  <span className="block text-amber-800 uppercase tracking-widest text-[10px] mb-1">SLA PAUSED REASON</span>
+                  <span className="block text-amber-800 uppercase tracking-widest text-[10px] mb-1">SLA PAUSED ({ticket.status})</span>
                   &quot;{ticket.pauseReason}&quot;
                 </div>
               )}
@@ -591,7 +594,7 @@ export default function TicketDetail({ params }: TicketPageProps) {
                               targetDate={ticket.sla.resolveTarget} 
                               type="resolve" 
                               isBreached={ticket.sla.resolveBreached} 
-                              isPaused={ticket.status === 'Waiting on Client'}
+                              isPaused={isPausedStatus(ticket.status)}
                               pausedAt={ticket.sla.pausedAt}
                             />
                           </div>
@@ -725,7 +728,7 @@ export default function TicketDetail({ params }: TicketPageProps) {
                 >
                   Add Work Note
                 </button>
-                {ticket.status === 'Waiting on Client' ? (
+                {isPausedStatus(ticket.status) ? (
                   <button 
                     onClick={() => handleStatusChange('In Progress')}
                     className="px-6 py-2 bg-brand-bronze text-black border-2 border-black font-bold hover:bg-brand-bronze/80 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all cursor-pointer"
@@ -733,20 +736,30 @@ export default function TicketDetail({ params }: TicketPageProps) {
                     Resume SLA (In Progress)
                   </button>
                 ) : (
-                  <button 
-                    onClick={() => {
-                      if (!resolutionText.trim()) {
-                        setActionError("Please enter a pause reason in the Work Note textarea first.");
-                        return;
-                      }
-                      handleStatusChange('Waiting on Client', resolutionText.trim());
-                    }}
-                    className="px-6 py-2 bg-amber-400 text-black border-2 border-black font-bold hover:bg-amber-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all cursor-pointer"
-                  >
-                    Pause SLA (Pending)
-                  </button>
+                  <div className="flex gap-2 items-center">
+                    <select
+                      value={pauseStatus}
+                      onChange={(e) => setPauseStatus(e.target.value as 'Waiting on Client' | 'Waiting on Vendor')}
+                      className="p-2 bg-white border-2 border-black rounded outline-none text-xs font-mono font-bold cursor-pointer focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all text-black h-[42px]"
+                    >
+                      <option value="Waiting on Client">Waiting on Client</option>
+                      <option value="Waiting on Vendor">Waiting on Vendor</option>
+                    </select>
+                    <button 
+                      onClick={() => {
+                        if (!resolutionText.trim()) {
+                          setActionError("Please enter a pause reason in the Work Note textarea first.");
+                          return;
+                        }
+                        handleStatusChange(pauseStatus, resolutionText.trim());
+                      }}
+                      className="px-6 py-2 bg-amber-400 text-black border-2 border-black font-bold hover:bg-amber-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all cursor-pointer h-[42px]"
+                    >
+                      Pause SLA
+                    </button>
+                  </div>
                 )}
-                {ticket.status !== 'Waiting on Client' && (
+                {!isPausedStatus(ticket.status) && (
                   <button 
                     onClick={handleResolve}
                     className="px-6 py-2 bg-brand-olive border-2 border-black font-bold hover:bg-[#b6d094] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all cursor-pointer"
