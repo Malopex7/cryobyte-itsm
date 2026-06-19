@@ -161,6 +161,7 @@ export default function Home() {
             height={108}
             className="h-[90px] w-auto"
             priority
+            unoptimized={true}
           />
         </div>
 
@@ -432,6 +433,7 @@ export default function Home() {
               width={390}
               height={63}
               className="h-[54px] w-auto opacity-70"
+              unoptimized={true}
             />
             <span className="text-xs font-mono uppercase tracking-widest text-[#44483d]">
               © 2026 CryoByte PTY LTD | v1.0.0-Beta

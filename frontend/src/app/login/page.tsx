@@ -70,6 +70,7 @@ export default function LoginPage() {
             height={108}
             className="h-[64px] w-auto cursor-pointer"
             priority
+            unoptimized={true}
           />
         </Link>
       </div>
