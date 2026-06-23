@@ -164,7 +164,7 @@ export default function PrivacyPolicy() {
               Our support queues leverage artificial intelligence to optimize routing latency, response intervals, and resolution accuracy.
             </p>
             <ul className="text-xs font-mono space-y-2 text-[#44483d] list-disc list-inside">
-              <li><strong>Gemini AI Integration:</strong> Ticket descriptions are evaluated via Google's Gemini API for priority, classification, and assignment queue proposals.</li>
+              <li><strong>Gemini AI Integration:</strong> Ticket descriptions are evaluated via Google&apos;s Gemini API for priority, classification, and assignment queue proposals.</li>
               <li><strong>SLA Engine:</strong> Ticket lifecycles are monitored in real-time by our Agenda scheduler to ensure SLA compliance.</li>
               <li>No ticketing data processed by our AI algorithms is used by third-party LLMs for model training purposes.</li>
             </ul>
