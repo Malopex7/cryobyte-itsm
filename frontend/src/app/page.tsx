@@ -453,7 +453,7 @@ export default function Home() {
               SLA Agreement
             </Link>
             <Link
-              href="#"
+              href="/privacy"
               className="text-[#44483d] hover:text-brand-olive transition-colors"
             >
               Privacy Policy
