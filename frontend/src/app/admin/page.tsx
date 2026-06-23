@@ -511,7 +511,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Block: Client Onboarding and List */}
           <div className="lg:col-span-6 space-y-8">
             {/* Form */}
@@ -656,7 +656,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Right Block: User Management */}
-          <div className="lg:col-span-6 space-y-6">
+          <div className="lg:col-span-6 space-y-8">
 
             {/* ── Create User Panel ── */}
             <div className="bg-white brutalist-border p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg">
@@ -900,7 +900,7 @@ Jane Smith,jane@acme.com,Pass456,Admin</code>
                 </div>
               </div>
 
-              <div className="max-h-[680px] overflow-y-auto pr-1 space-y-3">
+              <div className="max-h-[380px] overflow-y-auto pr-1 space-y-3">
                 {usersLoading ? (
                   <span className="text-xs font-mono text-gray-500 block animate-pulse py-4 text-center">Loading registered identities...</span>
                 ) : filteredUsers.length === 0 ? (
