@@ -99,3 +99,10 @@ A GitHub Actions workflow is pre-configured in `.github/workflows/ci.yml`. On ev
 - Verifies typescript compilation on the Next.js frontend (`tsc --noEmit`).
 - Runs backend tests.
 - Performs build checks on both frontend and backend.
+
+---
+
+## 🌐 Deployment
+
+For detailed, step-by-step instructions on deploying the frontend to **Vercel** and the backend to **Render**, refer to the [Deployment Guide](file:///d:/cursor-dev/cryobyte-itsm/docs/deployment.md).
+
